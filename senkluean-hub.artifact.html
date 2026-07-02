@@ -1,0 +1,1075 @@
+<script>
+/* set theme before the body paints so there's no flash of an untokenised ground */
+document.documentElement.dataset.theme = (function(){
+  try { return JSON.parse(localStorage.getItem('senkluean.hub.v2')||'{}').theme || 'dark'; }
+  catch(e){ return 'dark'; }
+})();
+</script>
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS  —  single source of truth for the whole hub.
+   Two themes swap by flipping [data-theme] on <html>.  Everything else
+   below references these variables, so a refresh is a token edit, not a
+   find-and-replace across 2000 lines.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* brand palette (locked) */
+  --prussian:#003153; --pine:#1B4332; --cold:#4A5568; --indigo:#4B0082;
+  --alpine:#4A6741;  --amber:#BA7517; --teal:#0f766e; --violet:#7c3aed;
+  --cyan:#06b6d4;    --danger:#c0392b;
+
+  /* status accents */
+  --s-active:var(--teal); --s-paused:var(--amber);
+  --s-queued:#9b59b6;     --s-complete:#3a7a5a; --s-await:var(--amber);
+
+  /* motion + shape */
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --dur:.2s;
+  --sp:clamp(16px, 3vw, 28px);            /* page gutter */
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.5);
+  --ring:0 0 0 2px var(--bg), 0 0 0 4px var(--amber);
+  --font-ui:'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg:#0a0a0a; --bg-1:#0d0d0d; --bg-2:#111; --bg-3:#161616;
+  --line:#1e1e1e; --line-2:#242424; --line-3:#2a2a2a;
+  --ink:#E8EAF0; --ink-2:#e0e0e0; --ink-3:#9ca3af;
+  --mut:#666; --mut-2:#555; --mut-3:#444; --mut-4:#333;
+  --hover:rgba(255,255,255,.05);
+  color-scheme:dark;
+}
+:root[data-theme="light"] {
+  --bg:#F1EDE2; --bg-1:#ECE7DB; --bg-2:#F7F4EC; --bg-3:#EDE8DC;
+  --line:#D8D1C0; --line-2:#CFC9BA; --line-3:#C2BBA8;
+  --ink:#1a2733; --ink-2:#28323c; --ink-3:#5a6470;
+  --mut:#6b6456; --mut-2:#7a7364; --mut-3:#948c7a; --mut-4:#aca492;
+  --hover:rgba(0,0,0,.04);
+  --shadow:0 1px 2px rgba(90,80,55,.12), 0 10px 28px -14px rgba(90,80,55,.28);
+  color-scheme:light;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--ink-2);min-height:100vh;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+  -webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}html{scroll-behavior:auto}}
+:focus-visible{outline:none;box-shadow:var(--ring);border-radius:var(--r-sm)}
+.mono{font-family:var(--font-mono)}
+button{font-family:inherit;cursor:pointer}
+
+/* ── NAV ─────────────────────────────────────────────────────────────── */
+.nav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:12px var(--sp);border-bottom:1px solid var(--line);background:var(--bg-1);
+  position:sticky;top:0;z-index:100}
+.nav-brand{display:flex;flex-direction:column}
+.nav-th{font-size:1.1rem;font-weight:700;color:var(--ink);letter-spacing:.02em}
+.nav-en{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mut-2);margin-top:1px}
+.nav-links{display:flex;gap:6px}
+.nav-btn{padding:6px 15px;border-radius:var(--r-pill);font-size:.7rem;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;border:1px solid var(--line-3);color:var(--mut);background:transparent;transition:all var(--dur) var(--ease)}
+.nav-btn:hover{color:var(--ink-2);border-color:var(--mut-3)}
+.nav-btn[aria-current="page"]{color:var(--ink);border-color:var(--mut);background:var(--bg-3)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-search{display:flex;align-items:center;gap:7px;background:var(--bg-2);border:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:6px 14px;width:240px;max-width:38vw;transition:border-color var(--dur)}
+.nav-search:focus-within{border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+.nav-search input{flex:1;background:transparent;border:0;outline:none;color:var(--ink-2);font-size:.78rem;font-family:inherit;min-width:0}
+.nav-search input::placeholder{color:var(--mut-3)}
+.ico-btn{width:34px;height:34px;display:grid;place-items:center;border-radius:var(--r-sm);
+  border:1px solid var(--line-3);background:var(--bg-2);color:var(--mut);font-size:1rem;transition:all var(--dur)}
+.ico-btn:hover{color:var(--ink);border-color:var(--mut-3)}
+.nav-date{font-size:.66rem;color:var(--ink-3);letter-spacing:.05em;font-weight:700;white-space:nowrap}
+input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none}
+
+/* ── PAGES / LAYOUT ──────────────────────────────────────────────────── */
+.page{display:none;animation:fade var(--dur) var(--ease)}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.section{padding:26px var(--sp) 0}
+.section-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.section-title{font-size:.68rem;color:var(--mut-3);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.section-meta{font-size:.68rem;color:var(--mut-4);margin-left:auto}
+.flag{font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;
+  border-radius:var(--r-pill);background:color-mix(in srgb,var(--amber) 15%,transparent);
+  color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
+
+/* ── HERO ────────────────────────────────────────────────────────────── */
+.hero{padding:34px var(--sp) 26px;border-bottom:1px solid var(--line)}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px}
+.hero h1{font-size:clamp(1.4rem,4vw,1.7rem);font-weight:700;color:var(--ink);margin-bottom:4px}
+.hero .lede{font-size:.82rem;color:var(--mut-2);font-style:italic}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:var(--r-pill);
+  font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:color-mix(in srgb,var(--amber) 12%,transparent);color:var(--amber);
+  border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shadow)}
+.stat-val{font-size:1.5rem;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px}
+.stat-val sup{font-size:.6rem;color:var(--danger);vertical-align:super}
+.stat-label{font-size:.66rem;color:var(--mut-2);text-transform:uppercase;letter-spacing:.07em}
+.stat-sub{font-size:.7rem;color:var(--mut-3);margin-top:3px}
+.hl{color:var(--amber);font-weight:600;background:color-mix(in srgb,var(--amber) 14%,transparent);padding:1px 6px;border-radius:var(--r-sm)}
+.livedot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--teal);margin-left:4px;animation:pulse 2s infinite}
+
+/* ── SEARCH BAR ──────────────────────────────────────────────────────── */
+.searchbar{position:sticky;top:57px;z-index:40;padding:14px var(--sp) 4px;background:var(--bg);backdrop-filter:blur(6px)}
+.searchbar-inner{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:9px 13px}
+.searchbar-inner:focus-within{border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+.searchbar input{flex:1;background:transparent;border:0;outline:none;color:var(--ink-2);font-size:.85rem;font-family:inherit}
+.searchbar input::placeholder{color:var(--mut-3)}
+.searchbar .count{font-size:.66rem;color:var(--mut);font-family:var(--font-mono);white-space:nowrap}
+.searchbar .kbd{font-size:.6rem;color:var(--mut-2);border:1px solid var(--line-3);border-radius:4px;padding:1px 5px;font-family:var(--font-mono)}
+.clear-btn{display:none;width:24px;height:24px;place-items:center;background:var(--bg-3);border:1px solid var(--line-3);color:var(--mut);border-radius:var(--r-sm);font-size:1rem;line-height:1}
+.clear-btn.show{display:grid}
+.clear-btn:hover{color:var(--ink)}
+/* search visual states, driven by JS toggling classes */
+.is-hidden{display:none!important}
+.is-match{outline:1px solid color-mix(in srgb,var(--amber) 45%,transparent);outline-offset:2px;border-radius:var(--r-md);
+  background:color-mix(in srgb,var(--amber) 5%,transparent)}
+.empty-note{font-size:.72rem;color:var(--mut-2);padding:10px 2px;grid-column:1/-1}
+
+/* ── CARDS / GRIDS (shared) ──────────────────────────────────────────── */
+.grid{display:grid;gap:10px}
+.g-pipe{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.g-brand{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g-metric{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shadow)}
+.pipe{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+.pipe-head{padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+.pipe-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pipe-name{font-size:.85rem;font-weight:600;color:var(--ink)}
+.pipe-desc{font-size:.75rem;color:var(--mut-2);line-height:1.5}
+.chip{font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 9px;border-radius:var(--r-pill);white-space:nowrap}
+.chip[data-status]{background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.chip[data-status=active]{--c:var(--s-active)} .chip[data-status=paused]{--c:var(--s-paused)}
+.chip[data-status=queued]{--c:var(--s-queued)} .chip[data-status=complete]{--c:var(--s-complete)}
+.chip[data-status=await]{--c:var(--s-await)}
+.pipe-body{padding:12px 16px}
+.prog-label{display:flex;justify-content:space-between;margin-bottom:6px;font-size:.68rem}
+.prog-label span{color:var(--mut-3)} .prog-label b{color:var(--mut)}
+.prog-track{height:5px;background:var(--line);border-radius:var(--r-pill);overflow:hidden;margin-bottom:12px}
+.prog-fill{height:100%;border-radius:var(--r-pill);transition:width .6s var(--ease)}
+.steps{display:flex;flex-direction:column;gap:3px}
+.step{display:flex;align-items:flex-start;gap:9px;padding:4px 0}
+.step-mark{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:.55rem;margin-top:1px}
+.step[data-s=done] .step-mark{background:color-mix(in srgb,var(--teal) 25%,transparent);border:1px solid var(--teal);color:var(--teal)}
+.step[data-s=active] .step-mark{background:color-mix(in srgb,var(--amber) 18%,transparent);border:1px solid var(--amber);color:var(--amber)}
+.step[data-s=todo] .step-mark{background:var(--line);border:1px solid var(--line-3)}
+.step-text{font-size:.75rem;color:var(--mut);line-height:1.4}
+.step[data-s=done] .step-text{color:var(--mut-2);text-decoration:line-through;text-decoration-color:var(--mut-4)}
+.step[data-s=active] .step-text{color:var(--ink-2)}
+
+/* brand + metric + colour */
+.brand-label,.metric-label{font-size:.6rem;color:var(--mut-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.brand-val{font-size:.82rem;color:var(--ink);font-weight:500;line-height:1.4}
+.brand-val.th{font-size:1rem}
+.brand-sub,.metric-note{font-size:.68rem;color:var(--mut-2);margin-top:3px;line-height:1.4}
+.metric-val{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:2px}
+.colour-row{display:flex;gap:8px;flex-wrap:wrap}
+.col-chip{display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;position:relative}
+.col-dot{width:22px;height:22px;border-radius:var(--r-sm);flex-shrink:0;border:1px solid rgba(128,128,128,.35)}
+.col-name{font-size:.72rem;color:var(--ink-2);font-weight:500}
+.col-hex{font-size:.64rem;color:var(--mut-3);font-family:var(--font-mono)}
+.col-new{position:absolute;top:-8px;right:8px;font-size:.52rem;background:var(--bg-3);color:var(--amber);
+  border:1px solid color-mix(in srgb,var(--amber) 40%,transparent);border-radius:var(--r-pill);padding:1px 6px;letter-spacing:.06em}
+
+/* ── ACCORDION (TOV + checkpoints share the pattern) ─────────────────── */
+.accordion{border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg-2);overflow:hidden;transition:border-color var(--dur);box-shadow:var(--shadow)}
+.accordion+.accordion{margin-top:6px}
+.accordion.open{border-color:var(--line-3)}
+.acc-head{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;width:100%;text-align:left;background:transparent;border:0;color:inherit}
+.acc-head:hover{background:var(--hover)}
+.acc-arrow{color:var(--mut-3);font-size:.62rem;transition:transform var(--dur);flex-shrink:0;margin-top:3px}
+.accordion.open .acc-arrow{transform:rotate(90deg)}
+.acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur) var(--ease)}
+.accordion.open .acc-body{grid-template-rows:1fr}
+.acc-body>div{overflow:hidden}
+.acc-inner{padding:2px 15px 15px;border-top:1px solid var(--line);margin-top:-1px}
+
+/* TOV */
+.tov-num{font-size:.6rem;color:var(--amber);text-transform:uppercase;letter-spacing:.09em;font-weight:700}
+.tov-name{font-size:.9rem;color:var(--ink);font-weight:600;margin:2px 0}
+.tov-one{font-size:.75rem;color:var(--mut-2);font-style:italic}
+.tov-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:12px}
+@media(max-width:560px){.tov-cols{grid-template-columns:1fr}}
+.tov-col-head{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:6px}
+.tov-col-head.say{color:var(--teal)} .tov-col-head.not{color:var(--danger)}
+.tov-ex{font-size:.73rem;line-height:1.5;padding:6px 10px;border-radius:var(--r-sm);margin-bottom:5px}
+.tov-ex.say{background:color-mix(in srgb,var(--teal) 8%,transparent);color:var(--ink-2);border-left:2px solid var(--teal)}
+.tov-ex.not{background:color-mix(in srgb,var(--danger) 7%,transparent);color:var(--mut);border-left:2px solid var(--danger)}
+.tov-why{font-size:.73rem;color:var(--mut);line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+
+/* checkpoints */
+.cp-date{font-size:.64rem;color:var(--mut);font-family:var(--font-mono);flex-shrink:0;width:74px}
+.cp-statusdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.cp-statusdot[data-s=done]{background:var(--teal)} .cp-statusdot[data-s=now]{background:var(--amber);animation:pulse 2s infinite} .cp-statusdot[data-s=next]{background:var(--mut-3)}
+.cp-text{font-size:.75rem;color:var(--ink-2);line-height:1.5;flex:1}
+.cp-text.done{color:var(--mut)}
+.tag{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;border-radius:var(--r-pill);white-space:nowrap;margin-left:4px;
+  background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.tag[data-tag=event]{--c:var(--amber)} .tag[data-tag=brand]{--c:var(--prussian-lite,#5a8ab0)}
+.tag[data-tag=identity]{--c:var(--teal)} .tag[data-tag=os]{--c:var(--s-queued)}
+.meta-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.meta{font-size:.64rem;color:var(--mut);background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:2px 9px}
+.note-box{width:100%;min-height:56px;background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r-sm);
+  color:var(--ink-2);font-family:inherit;font-size:.75rem;padding:8px 10px;resize:vertical;outline:none;margin-bottom:10px}
+.note-box:focus{border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;border-top:1px solid var(--line)}
+.btn-row .lbl{font-size:.6rem;color:var(--mut-3);text-transform:uppercase;letter-spacing:.06em;margin-right:3px}
+.sbtn{padding:4px 11px;border-radius:var(--r-sm);font-size:.66rem;font-weight:700;border:1px solid;background:transparent;transition:filter var(--dur)}
+.sbtn:hover{filter:brightness(1.3)}
+.sbtn[data-set=done]{color:var(--teal);border-color:var(--teal)} .sbtn[data-set=now]{color:var(--amber);border-color:var(--amber)} .sbtn[data-set=next]{color:var(--mut);border-color:var(--mut-3)}
+.sbtn.sel{color:#0a0a0a} .sbtn[data-set=done].sel{background:var(--teal)} .sbtn[data-set=now].sel{background:var(--amber)} .sbtn[data-set=next].sel{background:var(--mut)}
+
+/* ── ASSET LIBRARY ───────────────────────────────────────────────────── */
+.ad-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.seg{display:inline-flex;background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-sm);overflow:hidden}
+.seg button{padding:4px 11px;font-size:.68rem;background:transparent;border:0;color:var(--mut);border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button.active{background:var(--bg);color:var(--ink)}
+.ad-filters{display:flex;gap:5px;flex-wrap:wrap}
+.ad-chip{font-size:.66rem;padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--line-2);color:var(--mut);background:var(--bg-3)}
+.ad-chip.active{color:var(--ink);border-color:var(--mut-3);background:var(--bg)}
+.ad-chip.disabled{opacity:.4;cursor:not-allowed}
+.ad-chip .soon{font-size:.5rem;color:var(--amber);margin-left:4px}
+.ad-search{background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-sm);color:var(--ink-2);
+  font-size:.68rem;padding:5px 10px;outline:none;font-family:inherit;width:130px;margin-left:auto}
+.ad-count{font-size:.64rem;color:var(--mut);font-family:var(--font-mono)}
+.ad-empty{display:flex;gap:10px;align-items:center;background:var(--bg-3);border:1px dashed var(--line-3);border-radius:var(--r-md);padding:12px 14px;font-size:.72rem;color:var(--mut);line-height:1.5;margin-bottom:12px}
+.ad-empty b{color:var(--ink-2)}
+.ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ad-tile{background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-md);overflow:hidden}
+.ad-tile.ghost{opacity:.75}
+.ad-thumb{position:relative;aspect-ratio:4/3;background:var(--bg);display:grid;place-items:center;border-bottom:1px solid var(--line-2)}
+.ad-ph-ico{font-size:1.6rem;color:var(--mut-3)}
+.ad-type{position:absolute;top:6px;left:6px;font-size:.55rem;font-weight:700;padding:1px 6px;border-radius:var(--r-sm);background:var(--bg-1);color:var(--mut);border:1px solid var(--line-3)}
+.ad-tbody{padding:9px 10px}
+.ad-fname{font-size:.7rem;color:var(--ink-2);font-weight:600;word-break:break-all}
+.ad-fdesc{font-size:.64rem;color:var(--mut);line-height:1.4;margin-top:2px}
+.ad-meta{font-size:.58rem;color:var(--mut-3);margin-top:5px;font-family:var(--font-mono)}
+.ad-list{display:none;flex-direction:column;gap:4px}
+.ad-list.active{display:flex}
+.ad-grid.hidden{display:none}
+.ad-row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px 12px}
+.ad-row-ico{font-size:1rem;color:var(--mut-3);text-align:center}
+.ad-row b{font-size:.72rem;color:var(--ink-2)} .ad-row small{display:block;font-size:.62rem;color:var(--mut)}
+.ad-row-type{font-size:.58rem;font-weight:700;color:var(--mut);border:1px solid var(--line-3);border-radius:var(--r-sm);padding:1px 6px}
+
+/* ── TIMETABLE ───────────────────────────────────────────────────────── */
+.tt-wrap{max-width:820px;margin:0 auto;padding:30px var(--sp)}
+.tt-title{font-size:1.15rem;font-weight:700;color:var(--ink);text-align:center}
+.tt-sub{font-size:.75rem;color:var(--mut-2);text-align:center;margin:4px 0 18px}
+.tabs{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.tab{padding:6px 14px;border-radius:var(--r-pill);font-size:.7rem;font-weight:600;border:1px solid var(--line-3);color:var(--mut);background:var(--bg-2);transition:all var(--dur)}
+.tab:hover{color:var(--ink-2)}
+.tab.on{color:var(--ink);border-color:var(--mut);background:var(--bg-3)}
+.tt-stats{text-align:center;font-size:.72rem;color:var(--mut);margin-bottom:18px}
+.tt-stats b{color:var(--ink-2)}
+.timeline{display:flex;flex-direction:column;gap:7px}
+.slot{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow)}
+.slot.removed{opacity:.4}
+.slot-head{display:flex;align-items:center;gap:12px;padding:12px 15px;width:100%;background:transparent;border:0;text-align:left;color:inherit}
+.slot-head:hover{background:var(--hover)}
+.tt-time{font-size:.72rem;color:var(--amber);font-family:var(--font-mono);flex-shrink:0;width:96px}
+.tt-name{font-size:.82rem;color:var(--ink);font-weight:500;flex:1}
+.slot.removed .tt-name{text-decoration:line-through}
+.tbd{font-size:.55rem;font-weight:700;color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent);border-radius:var(--r-sm);padding:0 5px;margin-left:7px;vertical-align:middle}
+.dots{display:flex;gap:4px}
+.tt-dot{width:8px;height:8px;border-radius:50%}
+.tt-dot[data-t=stage]{background:var(--prussian);box-shadow:0 0 0 1px var(--mut-3)} .tt-dot[data-t=market]{background:var(--alpine)}
+.tt-dot[data-t=workshop]{background:var(--amber)}
+.tt-arrow{color:var(--mut-3);font-size:.6rem;transition:transform var(--dur)}
+.slot.open .tt-arrow{transform:rotate(90deg)}
+.slot-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur) var(--ease)}
+.slot.open .slot-body{grid-template-rows:1fr}
+.slot-body>div{overflow:hidden}
+.slot-inner{padding:4px 15px 14px;border-top:1px solid var(--line)}
+.s-row{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.s-row:last-of-type{border-bottom:0}
+.s-lbl{font-size:.66rem;color:var(--mut-2);text-transform:uppercase;letter-spacing:.04em}
+.s-val{font-size:.74rem;color:var(--ink-2);line-height:1.5}
+.s-btns{display:flex;gap:6px;margin-top:10px}
+.s-btn{padding:5px 12px;border-radius:var(--r-sm);font-size:.66rem;font-weight:700;border:1px solid;background:transparent;transition:filter var(--dur)}
+.s-btn:hover{filter:brightness(1.3)}
+.s-btn.rm{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 55%,transparent)}
+.s-btn.rs{color:var(--teal);border-color:var(--teal)}
+.s-btn.note{color:var(--mut);border-color:var(--mut-3)}
+
+/* ── ARCH / OS + VENUE ───────────────────────────────────────────────── */
+.arch-layer{background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px}
+.arch-name{font-size:.8rem;color:var(--ink);font-weight:600;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.arch-tag{font-size:.58rem;color:var(--s-queued);border:1px solid color-mix(in srgb,var(--s-queued) 35%,transparent);border-radius:var(--r-pill);padding:1px 8px}
+.arch-desc{font-size:.72rem;color:var(--mut);line-height:1.55;margin-top:5px}
+.venue-svg{display:block;width:100%;height:auto;max-width:680px;margin:0 auto;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px}
+.venue-legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:.66rem;color:var(--mut)}
+.venue-legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+/* vendor categories */
+.vend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.vend-card{background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-md);overflow:hidden}
+.vend-card summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.vend-card summary::-webkit-details-marker{display:none}
+.vend-ico{width:30px;height:30px;border-radius:var(--r-sm);display:grid;place-items:center;font-size:.9rem;flex-shrink:0;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.vend-title{font-size:.8rem;color:var(--ink);font-weight:600}
+.vend-role{font-size:.66rem;color:var(--mut-2);font-style:italic}
+.vend-marker{margin-left:auto;color:var(--mut-3);font-size:.7rem;transition:transform var(--dur)}
+.vend-card[open] .vend-marker{transform:rotate(90deg)}
+.vend-body{padding:0 14px 13px;font-size:.72rem;color:var(--mut);line-height:1.6}
+.vend-fields{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.vend-field{font-size:.62rem;color:var(--mut-2);background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:2px 8px}
+
+/* ── FOOTER ──────────────────────────────────────────────────────────── */
+.footer{padding:26px var(--sp);border-top:1px solid var(--line);margin-top:30px;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.68rem;color:var(--mut-2)}
+.footer a{color:var(--amber);text-decoration:none}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
+  background:var(--bg-3);border:1px solid var(--line-3);color:var(--ink);font-size:.75rem;
+  padding:9px 16px;border-radius:var(--r-pill);box-shadow:var(--shadow);z-index:200;pointer-events:none;transition:all var(--dur)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-th">เส้นเคลื่น Market</div>
+    <div class="nav-en">Sen Kluean · Production Hub V2.0 · rebuilt architecture</div>
+  </div>
+  <div class="nav-links" role="tablist" aria-label="Views">
+    <button class="nav-btn" data-nav="dashboard" role="tab" aria-current="page">Dashboard</button>
+    <button class="nav-btn" data-nav="timetable" role="tab">Timetable</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-search">
+      <span aria-hidden="true">⌕</span>
+      <input id="navSearch" type="search" autocomplete="off" placeholder="Search…" aria-label="Search dashboard">
+    </div>
+    <button class="ico-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle light / dark theme">◐</button>
+    <span class="nav-date" id="navDate">Saturday 27 June 2026 · Chiang Mai</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════ DASHBOARD ══════════════════════ -->
+<main class="page active" id="page-dashboard" role="tabpanel">
+
+  <section class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>Production Overview</h1>
+        <p class="lede">Thinking beyond the grid — every wave has a story</p>
+      </div>
+      <div class="badge"><span class="dot"></span>Edition 2.0 — Prototype</div>
+    </div>
+    <div class="stats" id="statsRow"></div>
+  </section>
+
+  <div class="searchbar">
+    <div class="searchbar-inner">
+      <span aria-hidden="true" style="color:var(--mut-2)">⌕</span>
+      <input id="globalSearch" type="search" autocomplete="off"
+        placeholder="Search the whole dashboard — pipelines, copy, colours, metrics, checkpoints…">
+      <span class="kbd">/</span>
+      <span class="count" id="searchCount"></span>
+      <button class="clear-btn" id="searchClear" aria-label="Clear search">×</button>
+    </div>
+  </div>
+
+  <!-- data-driven sections are stamped in by JS below -->
+  <section class="section" data-module="pipelines">
+    <div class="section-head"><h2 class="section-title">Pipeline status</h2><span class="section-meta" id="pipeMeta"></span></div>
+    <div class="grid g-pipe" id="pipeGrid"></div>
+  </section>
+
+  <section class="section" data-module="assets">
+    <div class="section-head"><h2 class="section-title">Art &amp; Design · Asset Library</h2><span class="section-meta">mirrors 02 - Brand and Identity / Art and Design / Sen Kluean</span></div>
+    <div class="card">
+      <div class="ad-toolbar">
+        <div class="seg" id="adView">
+          <button class="active" data-view="grid">▦ Grid</button>
+          <button data-view="list">☰ List</button>
+        </div>
+        <div class="ad-filters" id="adFilters">
+          <button class="ad-chip active" data-type="all">All</button>
+          <button class="ad-chip" data-type="jpg">JPG</button>
+          <button class="ad-chip" data-type="png">PNG</button>
+          <button class="ad-chip disabled" data-type="psd" title="PSD support ready — hidden until real .psd files are ingested">PSD<span class="soon">soon</span></button>
+        </div>
+        <input id="adSearch" class="ad-search" type="search" autocomplete="off" placeholder="Search assets…" aria-label="Search assets">
+        <span class="ad-count" id="adCount"></span>
+      </div>
+      <div class="ad-empty" id="adEmpty">
+        <span style="font-size:1.2rem">◇</span>
+        <div><b>Folder is empty — showing scaffold preview.</b> Drop <b>.jpg</b> / <b>.png</b> files into the mirror folder, then refresh the manifest.</div>
+      </div>
+      <div class="ad-grid" id="adGrid"></div>
+      <div class="ad-list" id="adList"></div>
+    </div>
+  </section>
+
+  <section class="section" data-module="brand">
+    <div class="section-head"><h2 class="section-title">Brand &amp; identity</h2><span class="section-meta">locked 2026-05-27</span></div>
+    <div class="grid g-brand" id="brandGrid"></div>
+  </section>
+
+  <section class="section" data-module="colours">
+    <div class="section-head"><h2 class="section-title">Colour palette</h2><span class="section-meta">7 colours · 2 new</span></div>
+    <div class="colour-row" id="colourRow"></div>
+  </section>
+
+  <section class="section" data-module="metrics">
+    <div class="section-head"><h2 class="section-title">Prototype metrics</h2></div>
+    <div class="grid g-metric" id="metricGrid"></div>
+  </section>
+
+  <section class="section" data-module="p0">
+    <div class="section-head"><h2 class="section-title">P0 pre-event actions</h2><span class="section-meta" id="p0Meta"></span></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))" id="p0Grid"></div>
+  </section>
+
+  <section class="section" data-module="os">
+    <div class="section-head"><h2 class="section-title">Internal OS — architecture</h2><span class="section-meta">5 layers · active</span></div>
+    <div id="osLayers"></div>
+  </section>
+
+  <section class="section" data-module="venue">
+    <div class="section-head"><h2 class="section-title">Venue · space layout</h2><span class="flag">Blueprint</span></div>
+    <div id="venueMount"></div>
+    <div class="venue-legend">
+      <span><i class="lg-dot" style="background:#9FE1CB"></i>Vendor booth</span>
+      <span><i class="lg-dot" style="background:#FAEEDA"></i>Zone</span>
+      <span><i class="lg-dot" style="background:#E1F5EE"></i>Art &amp; Craft</span>
+      <span><i class="lg-dot" style="background:var(--amber)"></i>Entry flow</span>
+    </div>
+  </section>
+
+  <section class="section" data-module="vendors">
+    <div class="section-head"><h2 class="section-title">Vendor approval — category branches</h2><span class="section-meta">6 categories · universal sign-up v2</span></div>
+    <div class="vend-grid" id="vendGrid"></div>
+  </section>
+
+  <section class="section" data-module="tov">
+    <div class="section-head"><h2 class="section-title">Tone of voice — 4 dimensions</h2><span class="flag">Register: casual</span></div>
+    <div id="tovList"></div>
+  </section>
+
+  <section class="section" data-module="checkpoints" style="padding-bottom:8px">
+    <div class="section-head"><h2 class="section-title">Roadmap checkpoints</h2><span class="section-meta" id="cpMeta"></span></div>
+    <div id="cpList"></div>
+  </section>
+
+  <footer class="footer">
+    <span>เส้นเคลื่น Market · Edition 2.0 Prototype · Chiang Mai · 27 June 2026</span>
+    <span>Rebuilt hub — state persists locally · <a href="#" data-action="reset-state">reset</a></span>
+  </footer>
+</main>
+
+<!-- ══════════════════════ TIMETABLE ══════════════════════ -->
+<main class="page" id="page-timetable" role="tabpanel">
+  <div class="tt-wrap">
+    <div class="tt-title">Saturday, June 27 2026 — 9:00am – 8:00pm + Afterparty</div>
+    <div class="tt-sub">เส้นเคลื่น Market · Sen Kluean Market · Chiang Mai</div>
+    <div class="tabs" id="ttTabs" role="tablist" aria-label="Track filter">
+      <button class="tab on" data-filter="all">All</button>
+      <button class="tab" data-filter="stage">♫ Stage</button>
+      <button class="tab" data-filter="market">▤ Market</button>
+      <button class="tab" data-filter="workshop">🔧 Workshop</button>
+    </div>
+    <div class="tt-stats">Active <b id="ttA">0</b> · Removed <b id="ttR">0</b> · TBD <b id="ttT">0</b></div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+  <footer class="footer"><span>เส้นเคลื่น Market · Edition 2.0 Prototype · Chiang Mai · 27 June 2026</span></footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════
+   SEN KLUEAN PRODUCTION HUB — V2.0
+   Ground-up rebuild of the v1.8 interactive architecture.
+
+   What changed vs v1.8:
+   • State persists to localStorage (checkpoints, notes, P0, timetable,
+     theme, active view) — v1.8 lost everything on reload.
+   • Zero inline onclick — one delegated listener drives every button via
+     data-action, so there are no globals and no ordering hazards.
+   • Everything renders from DATA; markup is a mount point, not content.
+   • Accessible: aria-expanded on every accordion, keyboard-operable,
+     focus-visible rings, reduced-motion aware.
+   • One search engine indexes [data-search] items across all modules.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── tiny DOM + persistence helpers ─────────────────────────────────── */
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const el = (tag, props={}, ...kids) => {
+  const n = document.createElement(tag);
+  const { dataset, ...rest } = props;
+  Object.assign(n, rest);
+  if (dataset) Object.assign(n.dataset, dataset);   // dataset is read-only — merge, don't overwrite
+  for (const k of kids) n.append(k.nodeType ? k : document.createTextNode(k));
+  return n;
+};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const KEY = "senkluean.hub.v2";
+const Store = {
+  data: loadState(),
+  get(path, fb){ return path.split(".").reduce((o,k)=>o&&o[k], this.data) ?? fb; },
+  set(path, val){
+    const ks = path.split("."); let o = this.data;
+    while (ks.length>1) o = (o[ks[0]] ??= {}), ks.shift();
+    o[ks[0]] = val; this.save();
+  },
+  save(){ try{ localStorage.setItem(KEY, JSON.stringify(this.data)); }catch(e){} },
+  reset(){ this.data = defaults(); this.save(); }
+};
+function defaults(){
+  return { theme:"dark", view:"dashboard", ttFilter:"all",
+           cp:{}, cpNotes:{}, p0:{}, ttRemoved:{}, ttNotes:{} };
+}
+function loadState(){
+  try{ return Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY)||"{}")); }
+  catch(e){ return defaults(); }
+}
+
+let toastTimer;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 1600);
+}
+
+/* ══════════════════════════ DATA ══════════════════════════ */
+const DATA = {
+  stats: [
+    { id:"dday", val:"—", label:'Days to event <span class="livedot"></span>', sub:"live countdown" },
+    { val:"3",    label:"Vendor zones",        sub:"Craft · F&amp;B · Art" },
+    { val:"Free", label:"Entry — edition 2.0", sub:'<span class="hl">300 THB target ed. 02</span>' },
+    { val:'5<sup>+1</sup>', label:"Pipelines",  sub:"5 active · 1 sub-pipeline" },
+    { val:"11h",  label:"Event duration",      sub:'<span class="hl">9:00am – 8:00pm + afterparty</span>' },
+    { val:"1",    label:"Social assets",       sub:"IG poster 01 · draft" },
+  ],
+
+  pipelines: [
+    { name:"Branding & identity", status:"active", fill:"var(--violet)", pct:80,
+      desc:"Visual language, naming, colour, typography, touchpoint design",
+      steps:[
+        ["done","Core identity defined"],["done","Event name — เส้นเคลื่น Market"],
+        ["done","Tagline — Thinking beyond the grid"],["done","Colour palette — 7 colours incl. Alpine Green + Black Pastel"],
+        ["done","Tone of voice — 4 dimensions locked"],["done","Typography locked — DM Serif + Space Grotesk + Cormorant italic"],
+        ["done","Typography PDF delivered — A4 designer briefing"],["done","Logo mark iteration 01 — 4 colour variants, scale test"],
+        ["done","Marketing strategy iteration 01 — 5-phase rollout"],
+        ["active","Touchpoint design — poster, social templates, signage system"],
+        ["active","Logo mark iteration 02 — wave compression field + structural bars"],
+        ["todo","Marketing rollout — execute Week 1 workshop launch"],
+      ]},
+    { name:"Core identity", status:"complete", fill:"var(--teal)", pct:100,
+      desc:"Foundation answers informing all design and system decisions",
+      steps:[
+        ["done","Mission & origin statement"],["done","Prototype model + success metrics"],
+        ["done","Q1: Audience — Listener, Explorer, Connector"],["done","Q2: Vendor philosophy — partners of sound waves"],
+        ["done","Q3: Day-to-night — same wave, different time"],["done","Brand core — essence + positioning"],
+        ["done","Q4: Early group → conversion → community"],
+      ]},
+    { name:"Event production", status:"active", fill:"var(--amber)", pct:50,
+      desc:"Timetable, vendors, talent, logistics for June 27",
+      steps:[
+        ["done","Full timetable locked (9am–late)"],["done","Workshop — 5 spots, 1,500 THB, pre-registration"],
+        ["done","Vendor market structure — craft + F&B + art zone"],["done","Timetable modified — Turntable Set parallel with workshop"],
+        ["done","P0 checklist — 15 items categorised, week-assigned"],
+        ["active","Week 1 — workshop registration + venue/permit confirmation"],
+        ["todo","Book talent — acoustic performer, DJ selectors, live band"],["todo","Lock vendor roster — craft + F&B partners"],
+        ["todo","Define special show 6–8pm"],["todo","Confirm afterparty model + run sheet"],
+      ]},
+    { name:"Internal OS / app", status:"active", fill:"var(--indigo)", pct:15,
+      desc:"AI-assisted event management — data, contacts, payments, analytics",
+      steps:[
+        ["done","Brief defined — 6 OS priorities mapped"],["done","Core identity complete — build trigger activated"],
+        ["done","Migrated to Cowork — dedicated workspace active"],
+        ["active","Architecture & data model — 5-layer system, 8 entities"],
+        ["todo","Layer 1 — Production clarity tools"],["done","Layer 2 — Contact & vendor CRM"],
+        ["todo","Layer 3 — Revenue & workshop registration"],["todo","Layer 4 — On-site capture + check-in"],
+        ["todo","Layer 5 — Post-event analytics dashboard"],
+      ]},
+    { name:"Copywriting", status:"active", fill:"var(--cyan)", pct:40, sub:true,
+      desc:"Sub-pipeline · inherits from Branding & Marketing strategy · Stage 2 of 5 drafted, in review",
+      steps:[
+        ["done","Stage 01 — Copy foundation: voice doc, copy bank, phrase lexicon, forbidden-words list"],
+        ["active","Stage 02 — Campaign copy drafts (8 items, Week 1–3) · in review"],
+        ["todo","Stage 03 — Touchpoint copy (poster, forms, signage, run sheet)"],
+        ["todo","Stage 04 — On-site + post-event copy"],["todo","Stage 05 — Content library + replication"],
+      ]},
+  ],
+
+  assets: [
+    { file:"logo_master.png",          type:"png", slot:"Brand mark",    desc:"Primary logo lockup — transparent master artwork" },
+    { file:"wordmark_lockup.png",      type:"png", slot:"Brand mark",    desc:"เส้นเคลื่น wordmark + romanised lockup" },
+    { file:"key_visual_poster.jpg",    type:"jpg", slot:"Key visual",    desc:"Edition 01 hero poster artwork" },
+    { file:"typography_specimen.png",  type:"png", slot:"Type system",   desc:"DM Serif + Space Grotesk specimen sheet" },
+    { file:"wave_motif_pattern.png",   type:"png", slot:"Graphic motif", desc:"Wave compression / grid motif — tiling artwork" },
+    { file:"venue_signage_keyart.jpg", type:"jpg", slot:"Environment",   desc:"Signage + wayfinding key art reference" },
+  ],
+
+  brand: [
+    ["Event name (Thai)","เส้นเคลื่น Market","primary · locked 2026-05-27",true],
+    ["Romanised","Sen Kluean Market","romanization of เส้นเคลื่น"],
+    ["Tagline","Thinking beyond the grid","accent italic · Cormorant"],
+    ["Positioning","A sonic culture playground where sound, people, and art move as one."],
+    ["Tone of voice","Casual, knowledgeable, specific, warm, local","register shifted casual · 2026-05-27"],
+    ["Edition model","Prototype — free entry","300 THB target from ed. 02"],
+    ["Display face","DM Serif Display","headlines · name · poster · locked"],
+    ["Utility face","Space Grotesk","body · UI · signage · forms · locked"],
+    ["Accent italic","Cormorant Garamond","tagline only · italic · locked"],
+    ["Logo mark","Iteration 02 — direction set","wave compression field + structural bars · build ready"],
+  ],
+
+  colours: [
+    ["Prussian Blue","#003153","stage / sound"],["Pine Green","#1B4332","base green"],
+    ["Cold Grey","#4A5568","structural"],["Indigo","#4B0082","afterparty"],
+    ["Off-white","#E8EAF0","text on dark"],
+    ["Alpine Green","#4A6741","70% · daytime",true],["Black Pastel","#1C1C1C","30% · grounding",true],
+  ],
+
+  metrics: [
+    ["Foot traffic","TBD","Primary interest signal"],["Workshop conversion","0 / 5","Sellout = model confirmed"],
+    ["Dwell time","TBD","9am → afterparty arc"],["Vendor engagement","TBD","Which categories draw most"],
+    ["Future ticket intent","300 THB","Validate for edition 02"],["Return intent","TBD","Captured on the day"],
+  ],
+
+  p0: [
+    [1,"Confirm venue and permit status","Week 1","production"],[2,"Complete power audit","Week 1","production"],
+    [3,"Confirm workshop instructor","Week 1","talent"],[4,"Launch workshop registration","Week 1","revenue"],
+    [5,"Confirm acoustic performer","Week 1","talent"],[6,"Confirm lecture topic and speaker","Week 1","talent"],
+    [7,"Confirm DJ selectors","Week 2","talent"],[8,"Confirm live band","Week 2","talent"],
+    [9,"Define special show 6–8pm","Week 2","talent"],[10,"Confirm afterparty model","Week 2","production"],
+    [11,"Lock vendor roster","Week 2","relationships"],[12,"Produce poster / social / signage","Week 2","brand"],
+    [13,"Create public announcement calendar","Week 2","brand"],[14,"Create day-of run sheet","Week 3","production"],
+    [15,"Assign on-site roles","Week 3","production"],
+  ],
+  p0cat: { production:"var(--amber)", talent:"var(--violet)", revenue:"var(--teal)", relationships:"var(--cyan)", brand:"var(--prussian)" },
+
+  os: [
+    ["Production Clarity Layer","Run sheets · roles · checklists","Run sheets, timetable slots, role assignments, venue checklist, crew cue cards. Every action has an owner, a time, and a dependency."],
+    ["Relationship Memory Layer","Vendor · performer CRM","Vendor CRM, performer & speaker records. Each contact carries tags: category, edition history, rating, return-intent. Merged source: vendor tracker + universal sign-up form."],
+    ["Revenue & Conversion Layer","Workshop · tickets · fees","Workshop registrations, future ticket sales, vendor pitch fees. Tracks interest-to-payment conversion per channel and edition."],
+    ["On-site Capture Layer","Check-in · tally · survey","Foot-traffic tally, check-in UI, return-intent survey. Captures the prototype's core signals on event day."],
+    ["Post-event Analytics Layer","Debrief · edition-02 decision","Aggregates the day's data into a debrief and an edition-02 decision document. Feeds the replication model."],
+  ],
+
+  vendors: [
+    ["Market","▦","var(--amber)","General vendors selling products for money","Booth size · products · pricing tier · power need"],
+    ["Barter","⇄","var(--violet)","The differentiator — provenance over transaction","Trade goods · iron-rules checkbox · story of object"],
+    ["Coffee & F&B","☕","var(--teal)","Foot-traffic enabler + morning-arc anchor","Menu · equipment · power draw (feeds P0 #2)"],
+    ["Sound","♫","var(--prussian)","The spine — sound IS the brand","Set type · rig needs · run-sheet slot · PA partner"],
+    ["Workshop","🔧","var(--cyan)","Revenue + participation layer","Topic · cap · price · materials · L3 revenue signal"],
+    ["Art & Craft","✎","var(--alpine)","Craft zone — daytime market identity","Medium · display need · zone placement"],
+  ],
+
+  tov: [
+    { num:"01", name:"Knowledgeable, not academic", one:"You know your stuff but you're not performing expertise.",
+      say:['"A chip-amp build is a great first project — low component count, forgiving circuit."','"Keeping the workshop to 5 people so everyone gets hands-on time."','"The auction is a mixed bag — some finds, some dust-collectors. Come ready to dig."'],
+      not:['"An immersive deep-dive into the fundamentals of analogue audio amplification."','"Experience a curated curation of rare vinyl artefacts."','"Join us for an unprecedented gathering of sonic artisans."'],
+      why:"The audience includes makers, hobbyists, and music nerds who spot pretension immediately. Talk like the record-shop owner who's been doing this 15 years — relaxed, specific, unpretentious." },
+    { num:"02", name:"Specific, not hype", one:"Concrete details do more work than adjectives.",
+      say:['"5 spots. 2 hours. You leave with a working amp."','"1,500 THB includes the kit, components, and instruction."','"Acoustic set from 10am while the market wakes up."'],
+      not:['"An incredible, once-in-a-lifetime amplifier experience!"','"Amazing vendors, epic music, unforgettable vibes."','"The biggest event Chiang Mai has ever seen."'],
+      why:"Specificity builds trust — it signals you have actually planned the thing. Concrete details persuade more than superlatives." },
+    { num:"03", name:"Warm, not exclusive", one:"Anyone curious is welcome. The door is open.",
+      say:['"Never soldered before? No problem — we will walk you through it."','"Bring something to trade, or just come to browse."','"The market runs all day — no rush, no pressure."'],
+      not:['"For serious collectors only."','"A select gathering of Chiang Mai\'s finest audiophiles."','"This isn\'t for everyone — but you know if it\'s for you."'],
+      why:"Free entry and a mixed audience — craft buyers, music fans, hobbyists, first-timers. Exclusive language alienates the majority." },
+    { num:"04", name:"Local, not generic", one:"Rooted in Chiang Mai, not trying to be anywhere else.",
+      say:['"Saturday morning in Chiang Mai just got a sound system."','"Local makers, local records, local craft."','"A Saturday that feels like a proper Saturday."'],
+      not:['"A world-class event bringing international vibes to Thailand."','"Like the markets of Tokyo and Berlin, but here."','"Elevating Chiang Mai to the global stage."'],
+      why:"The event's strength is that it's genuinely local. Leaning into that is more compelling and more honest than positioning it as a global export." },
+  ],
+
+  checkpoints: [
+    ["cp1","Session","done","event","Event concept defined — components, structure, timetable"],
+    ["cp2","Session","done","event","Timetable locked with interactive toggle UI"],
+    ["cp3","Session","done","brand","Branding pipeline initiated — 5-phase protocol mapped"],
+    ["cp4","Session","done","identity","Tone of voice defined — 4 dimensions"],
+    ["cp5","Session","done","brand","Name locked — เส้นเคลื่น Market / Sen Kluean Market"],
+    ["cp6","Session","done","brand","Tagline locked — Thinking beyond the grid"],
+    ["cp7","Session","done","brand","Colour palette locked — Prussian Blue, Pine Green, Cold Grey, Indigo"],
+    ["cp8","Session","done","identity","Core identity + prototype model banked"],
+    ["cp9","Session","done","identity","Q1–Q4 + brand core locked — core identity 100%"],
+    ["cp10","Session","done","brand","Colour palette expanded — Alpine Green + Black Pastel, 70/30 ratio, zone mapping"],
+    ["cp11","Session","done","brand","Typography — 5 picks evaluated, direction locked (DM Serif + Space Grotesk + Cormorant italic)"],
+    ["cp12","Session","done","brand","Typography PDF delivered — A4 designer briefing with rationale + do/don't"],
+    ["cp13","Session","done","brand","Logo mark iteration 01 — typographic mark, animated wave, 4 colour variants"],
+    ["cp14","Session","done","brand","Marketing strategy iteration 01 — 5-phase rollout, workshop-first, wave drop sequence"],
+    ["cp16","Session","done","brand","Copywriting sub-pipeline added — 5-stage framework under branding + marketing"],
+    ["cp17b","Session","done","identity","Sonic Manifesto v1 banked — 7 principles, psychoacoustic spine, Sound Therapy link"],
+    ["cp18d","2026-05-27","done","brand","Interim rebrand — เส้นคลื่น / Sen Kluen → คลื่น / Kluen. Superseded 2026-06-15"],
+    ["cp19a","2026-06-15","done","brand","Rebranded to เส้นเคลื่น / Sen Kluean Community — 48 files renamed, links fixed, content sweep across 35 files"],
+    ["cp18e","Session","done","event","Event date moved — Saturday June 20 → Saturday June 27, 2026 (one-week push)"],
+    ["cp18f","Session","done","identity","TOV register shifted casual — Formal↔Casual spectrum 30% → 70%; new pillar 'casual, not corporate'"],
+    ["cp18g","Session","done","event","Vendor approval form layout added — universal sign-up v2, 6 category branches"],
+    ["cp18h","2026-06-15","done","event","Hub V1.8 — venue blueprint embedded on Dashboard (site plan, booths, entry flow)"],
+    ["cp20b","Now","now","os","Hub rebuilt to V2.0 — data-driven architecture, persistent state, delegated events, theme toggle, a11y pass"],
+    ["cp18","Now","now","brand","Logo iteration 02 direction — 3 references analysed; wave compression field (primary) synthesis locked"],
+    ["cp18c","Now","now","brand","Copywriting Stage 2 drafted — campaign_copy_v2 (8 items, Week 1–3), passed voice self-check, in review"],
+    ["cp20","Now","now","os","Migrated to Cowork — dedicated Event Management OS workspace live"],
+    ["cp21","Now","now","os","Internal OS architecture — 5-layer system, 8 core entities, build sequence defined"],
+    ["cp22","Active","now","brand","Touchpoint design — poster layout, social templates, signage system"],
+    ["cp23","Week 1","next","event","Workshop registration live — 5 spots, 1,500 THB"],
+    ["cp24","Week 1–2","next","os","L1 + L3 OS build — run-sheet tools + workshop registration form"],
+    ["cp25","Week 2","next","event","Lineup reveal, vendor confirmations, poster launch"],
+    ["cp26","Pre-event","next","os","L4 on-site capture — foot-traffic tally, check-in, return-intent survey"],
+    ["cp27","27 Jun","next","event","Edition 2.0 prototype — data capture, traffic measurement, return intent"],
+    ["cp28","Post-event","next","os","L5 debrief + analytics — edition 02 decision document produced"],
+  ],
+
+  timetable: [
+    ["loadIn","7:00 – 8:30","Crew Load-in & Soundcheck",["stage"],"transition",false,{Who:"Crew, technicians, vendors",Notes:"PA setup, DJ booth, vendor placement, lighting rig"}],
+    ["lineCheck","8:30 – 9:00","Final Line Check & Vendor Prep",["stage","market"],"transition",false,{Who:"All crew + vendors",Notes:"Final walkthrough before doors open"}],
+    ["doors","9:00","Doors Open — Market Opens",["market"],"market",false,{Market:"Art, craft, jewelry, photography, painting vendors","F&B":"Coffee, snacks, drinks live",Entry:"Free — no main entry ticket"}],
+    ["ambient","9:00 – 10:00","Ambient / Coffee Hour",["stage","market"],"market",false,{Stage:"Soft ambient background audio",Market:"Morning browsing, crowd settles in"}],
+    ["acoustic","10:00 – 11:00","Acoustic Set",["stage"],"stage",true,{Duration:"60 min",Format:"Solo or duo performer",Rig:"1 vocal mic + 1 instrument DI",Performer:"TBD"}],
+    ["soundHealing","10:00 – 11:30","Sound Healing — Hosted",["workshop"],"workshop",false,{Duration:"90 min",Host:"External / outsider-hosted",Project:"Sibling associate — Sound Therapy",Parallel:"Runs alongside the Acoustic Set (10:00–11:00)"}],
+    ["lecture","11:00 – 12:00","Informative Lecture",["workshop"],"workshop",true,{Duration:"60 min",Room:"Separate lecture area","A/V":"Mic + projector/slides",Topic:"TBD",Speaker:"TBD"}],
+    ["lunch","12:00 – 12:45","Lunch Break / Ambient",["stage","market"],"market",false,{Stage:"Playlist — no live act",Market:"Lunch peak, F&B busy",Note:"Ends 12:45 — DJ setup begins on stage"}],
+    ["djSetup","12:45 – 1:00","DJ Setup",["stage"],"transition",false,{Duration:"15 min",Notes:"Turntable selector setup, line check",Parallel:"DIY Amplifier Workshop opens at 1:00"}],
+    ["workshop","1:00 – 3:00","DIY Amplifier Workshop",["workshop"],"workshop",true,{Duration:"2 hours",Cap:"5 participants — pre-registration",Price:"1,500 THB / person",Revenue:"7,500 THB at full cap",Instructor:"TBD",Outcome:"Participants take home a working amp",Parallel:"Simultaneous with Turntable Set 1"}],
+    ["dj1","1:00 – 3:00","Turntable Set 1",["stage"],"stage",true,{Duration:"2 hours",Format:"2 selectors ~60min each, or 1 long set",Selectors:"TBD",Parallel:"Simultaneous with DIY Amplifier Workshop"}],
+    ["auction","3:00 – 4:00","Vinyl Auction",["stage"],"stage",true,{Duration:"60 min",Auctioneer:"TBD",Note:"Workshop ends 3:00 — participants can join",Prep:"Collect consignments + catalog in Week 2"}],
+    ["liveband","4:00 – 6:00","Live Band Performance",["stage"],"stage",true,{Duration:"2 hours",Format:"2–3 sets",Acts:"TBD"}],
+    ["special","6:00 – 8:00","Special Show",["stage"],"stage",true,{Duration:"2 hours",Status:"TO BE FILLED — headlining act or surprise","Last call":"Vendor market at 7:30"}],
+    ["winddown","8:00 – 8:30","Wind-down & Transition",["stage","market"],"transition",false,{Market:"Vendor breakdown",Stage:"Transition to afterparty setup"}],
+    ["afterparty","8:30 – late","Afterparty",["stage"],"stage",true,{Venue:"TBD — same space or separate",Ticketing:"Separate ticketing TBD",Format:"TBD"}],
+  ],
+
+  venueSVG:`<svg class="venue-svg" viewBox="0 0 700 560" role="img" aria-label="Sen Kluean venue space layout blueprint">
+    <defs><marker id="arrH" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#BA7517"/></marker></defs>
+    <rect x="140" y="30" width="360" height="465" fill="none" stroke="#888780" stroke-width="1.5"/>
+    <g transform="translate(170,155)"><rect width="120" height="170" fill="#E6F1FB" stroke="#888780"/><text x="60" y="89" text-anchor="middle" font-size="12" fill="#5F5E5A">Pool</text></g>
+    <g transform="translate(405,240)"><rect width="95" height="210" fill="#F1EFE8" stroke="#888780"/><text x="47.5" y="109" text-anchor="middle" font-size="12" fill="#5F5E5A">Main building</text></g>
+    <g transform="translate(148,386)"><rect width="245" height="38" fill="#F1EFE8" stroke="#888780"/><text x="122.5" y="23" text-anchor="middle" font-size="12" fill="#5F5E5A">Stores Front</text></g>
+    <g transform="translate(295,432)"><rect width="205" height="63" fill="#FAEEDA" stroke="#BA7517" stroke-width="1.5"/></g>
+    <g transform="translate(430,128)"><rect width="60" height="104" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/></g>
+    <g transform="translate(242,208) rotate(270 82 29)"><rect width="164" height="58" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><text x="6" y="15" font-size="11" fill="#5F5E5A">Art &amp; Craft</text></g>
+    <g transform="translate(394,46)"><rect width="98" height="74" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/></g>
+    <g transform="translate(140,508)"><line x1="0" y1="0" x2="380" y2="0" stroke="#888780" stroke-width="2" stroke-dasharray="5 4"/><text x="388" y="4" font-size="11" fill="#5F5E5A">Sidewalk</text></g>
+    <path d="M438,536 L438,482" stroke="#BA7517" stroke-width="2" fill="none" marker-end="url(#arrH)"/>
+    ${["A4:320,202","A1:320,288","A2:320,258","A3:320,230","A5:318,174"].map(s=>{const[l,xy]=s.split(":");const[x,y]=xy.split(",");return `<g transform="translate(${x},${y})"><rect width="16" height="16" rx="2" fill="#9FE1CB" stroke="#0F6E56"/><text x="8" y="12" text-anchor="middle" font-size="11" fill="#04342C">${l}</text></g>`;}).join("")}
+    <g transform="translate(345,88)"><circle r="31" fill="#FFFFFF" stroke="#444441" stroke-width="1.5"/><text y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Tree house</text></g>
+  </svg>`,
+};
+
+/* ══════════════════════════ RENDERERS ══════════════════════════ */
+function stampSearch(node, text){ node.dataset.search = text.toLowerCase(); return node; }
+
+function renderStats(){
+  const row = $("#statsRow"); row.innerHTML = "";
+  DATA.stats.forEach(s=>{
+    row.append(el("div",{className:"stat",innerHTML:
+      `<div class="stat-val" ${s.id?`id="${s.id}"`:""}>${s.val}</div>
+       <div class="stat-label">${s.label}</div><div class="stat-sub">${s.sub}</div>`}));
+  });
+}
+
+function renderPipelines(){
+  const grid = $("#pipeGrid"); grid.innerHTML="";
+  DATA.pipelines.forEach(p=>{
+    const steps = p.steps.map(([s,t])=>
+      `<div class="step" data-s="${s}"><span class="step-mark">${s==="done"?"✓":s==="active"?"→":""}</span><span class="step-text">${esc(t)}</span></div>`).join("");
+    const statusMap={active:"active",complete:"complete",paused:"paused",queued:"queued"};
+    const node = el("div",{className:"pipe",innerHTML:
+      `<div class="pipe-head"><div class="pipe-top"><span class="pipe-name">${esc(p.name)}${p.sub?' <span class="chip" data-status="queued" style="margin-left:6px">sub</span>':""}</span>
+        <span class="chip" data-status="${statusMap[p.status]||"active"}">${p.status}</span></div>
+        <div class="pipe-desc">${esc(p.desc)}</div></div>
+      <div class="pipe-body"><div class="prog-label"><span>Progress</span><b>${p.pct}%</b></div>
+        <div class="prog-track"><div class="prog-fill" style="width:${p.pct}%;background:${p.fill}"></div></div>
+        <div class="steps">${steps}</div></div>`});
+    grid.append(stampSearch(node, p.name+" "+p.desc+" "+p.steps.map(s=>s[1]).join(" ")));
+  });
+  $("#pipeMeta").textContent = DATA.pipelines.length+" pipelines";
+}
+
+function renderBrand(){
+  const g=$("#brandGrid"); g.innerHTML="";
+  DATA.brand.forEach(([label,val,sub,th])=>{
+    const n=el("div",{className:"card",innerHTML:
+      `<div class="brand-label">${esc(label)}</div><div class="brand-val${th?" th":""}">${esc(val)}</div>${sub?`<div class="brand-sub">${esc(sub)}</div>`:""}`});
+    g.append(stampSearch(n,label+" "+val+" "+(sub||"")));
+  });
+}
+function renderColours(){
+  const r=$("#colourRow"); r.innerHTML="";
+  DATA.colours.forEach(([name,hex,note,isNew])=>{
+    const n=el("div",{className:"col-chip",innerHTML:
+      `${isNew?'<span class="col-new">NEW</span>':""}<span class="col-dot" style="background:${hex}"></span>
+       <div><div class="col-name">${esc(name)}</div><div class="col-hex">${hex} · ${esc(note)}</div></div>`});
+    r.append(stampSearch(n,name+" "+hex+" "+note));
+  });
+}
+function renderMetrics(){
+  const g=$("#metricGrid"); g.innerHTML="";
+  DATA.metrics.forEach(([label,val,note])=>{
+    const n=el("div",{className:"card",innerHTML:
+      `<div class="metric-label">${esc(label)}</div><div class="metric-val">${esc(val)}</div><div class="metric-note">${esc(note)}</div>`});
+    g.append(stampSearch(n,label+" "+val+" "+note));
+  });
+}
+function renderOS(){
+  const m=$("#osLayers"); m.innerHTML="";
+  DATA.os.forEach(([name,tag,desc],i)=>{
+    const n=el("div",{className:"arch-layer",innerHTML:
+      `<div class="arch-name">L${i+1} — ${esc(name)} <span class="arch-tag">${esc(tag)}</span></div><div class="arch-desc">${esc(desc)}</div>`});
+    m.append(stampSearch(n,name+" "+tag+" "+desc));
+  });
+}
+function renderVendors(){
+  const g=$("#vendGrid"); g.innerHTML="";
+  DATA.vendors.forEach(([title,ico,c,role,fields])=>{
+    const n=el("details",{className:"vend-card"});
+    n.innerHTML=`<summary><span class="vend-ico" style="--c:${c}">${ico}</span>
+      <span><span class="vend-title">${esc(title)}</span><span class="vend-role">${esc(role)}</span></span>
+      <span class="vend-marker">▶</span></summary>
+      <div class="vend-body">${esc(role)}.<div class="vend-fields">${fields.split(" · ").map(f=>`<span class="vend-field">${esc(f)}</span>`).join("")}</div></div>`;
+    g.append(stampSearch(n,title+" "+role+" "+fields));
+  });
+}
+function renderVenue(){ $("#venueMount").innerHTML = DATA.venueSVG; }
+
+/* ── P0 checklist (persistent) ──────────────────────────────────────── */
+function renderP0(){
+  const g=$("#p0Grid"); g.innerHTML=""; let done=0;
+  DATA.p0.forEach(([n,text,week,cat])=>{
+    const isDone = !!Store.get("p0."+n); if(isDone) done++;
+    const c = DATA.p0cat[cat]||"var(--mut)";
+    const node=el("button",{className:"card",type:"button",style:
+      `text-align:left;display:flex;gap:10px;align-items:flex-start;width:100%;${isDone?"opacity:.45":""}`,
+      innerHTML:
+      `<span style="width:18px;height:18px;border-radius:50%;border:1.5px solid ${c};background:${isDone?c:"transparent"};flex-shrink:0;margin-top:1px;display:grid;place-items:center;font-size:.55rem;color:${isDone?"#0a0a0a":"transparent"}">✓</span>
+       <span style="flex:1"><span style="font-size:.72rem;color:${isDone?"var(--mut)":"var(--ink-2)"};line-height:1.4;${isDone?"text-decoration:line-through":""}">${n}. ${esc(text)}</span>
+         <span style="display:flex;gap:5px;margin-top:4px"><span class="vend-field">${week}</span>
+         <span class="vend-field" style="color:${c};border-color:color-mix(in srgb,${c} 35%,transparent)">${cat}</span></span></span>`});
+    node.dataset.action="toggle-p0"; node.dataset.id=n;
+    g.append(stampSearch(node,text+" "+week+" "+cat));
+  });
+  $("#p0Meta").textContent = `${done} / ${DATA.p0.length} done`;
+}
+
+/* ── Tone of voice accordion ────────────────────────────────────────── */
+function renderTOV(){
+  const m=$("#tovList"); m.innerHTML="";
+  DATA.tov.forEach((d,i)=>{
+    const open = !!Store.get("tovOpen."+i);
+    const wrap=el("div",{className:"accordion"+(open?" open":"")});
+    wrap.innerHTML=
+      `<button class="acc-head" data-action="toggle-tov" data-id="${i}" aria-expanded="${open}">
+        <span class="acc-arrow">▶</span>
+        <span><span class="tov-num">Dimension ${d.num}</span><span class="tov-name">${esc(d.name)}</span><span class="tov-one">${esc(d.one)}</span></span></button>
+      <div class="acc-body"><div><div class="acc-inner">
+        <div class="tov-cols">
+          <div><div class="tov-col-head say">Say this</div>${d.say.map(s=>`<div class="tov-ex say">${esc(s)}</div>`).join("")}</div>
+          <div><div class="tov-col-head not">Not this</div>${d.not.map(s=>`<div class="tov-ex not">${esc(s)}</div>`).join("")}</div>
+        </div><div class="tov-why">${esc(d.why)}</div>
+      </div></div></div>`;
+    m.append(stampSearch(wrap,d.name+" "+d.one+" "+d.say.join(" ")+" "+d.not.join(" ")+" "+d.why));
+  });
+}
+
+/* ── Checkpoints (persistent status + notes) ────────────────────────── */
+const CP_STATUS={done:"Done",now:"In progress",next:"Upcoming"};
+const CP_TAG={event:"Event",brand:"Brand",identity:"Identity",os:"OS"};
+function cpStatus(id,def){ return Store.get("cp."+id, def); }
+function renderCP(){
+  const list=$("#cpList"); list.innerHTML=""; let d=0,n=0,x=0;
+  DATA.checkpoints.forEach(([id,date,defStatus,tag,text])=>{
+    const status=cpStatus(id,defStatus);
+    status==="done"?d++:status==="now"?n++:x++;
+    const open=!!Store.get("cpOpen."+id);
+    const note=Store.get("cpNotes."+id,"");
+    const wrap=el("div",{className:"accordion"+(open?" open":"")});
+    const btn=s=>`<button class="sbtn${status===s?" sel":""}" data-set="${s}" data-action="set-cp" data-id="${id}">${CP_STATUS[s]}</button>`;
+    wrap.innerHTML=
+      `<button class="acc-head" data-action="toggle-cp" data-id="${id}" aria-expanded="${open}">
+        <span class="cp-date">${esc(date)}</span><span class="cp-statusdot" data-s="${status}"></span>
+        <span class="cp-text${status==="done"?" done":""}">${esc(text)} <span class="tag" data-tag="${tag}">${CP_TAG[tag]}</span></span>
+        <span class="acc-arrow">▶</span></button>
+      <div class="acc-body"><div><div class="acc-inner">
+        <div class="meta-row"><span class="meta">Phase · ${CP_TAG[tag]}</span><span class="meta">Milestone · ${esc(date)}</span><span class="meta">Status · ${CP_STATUS[status]}</span></div>
+        <textarea class="note-box" data-action="cp-note" data-id="${id}" placeholder="Add a note for this checkpoint…">${esc(note)}</textarea>
+        <div class="btn-row"><span class="lbl">Set status</span>${btn("done")}${btn("now")}${btn("next")}</div>
+      </div></div></div>`;
+    list.append(stampSearch(wrap,text+" "+date+" "+CP_TAG[tag]+" "+note));
+  });
+  $("#cpMeta").textContent = `${d} done · ${n} in progress · ${x} upcoming`;
+}
+
+/* ── Asset library ──────────────────────────────────────────────────── */
+const AD={view:"grid",filter:"all",q:""};
+const TYPE_ICON={jpg:"▭",png:"▥",psd:"⌗"};
+function adSet(){ return DATA.assets.filter(a=>AD.filter==="all"||a.type===AD.filter)
+  .filter(a=>!AD.q||(a.file+" "+a.desc+" "+a.slot).toLowerCase().includes(AD.q)); }
+function renderAssets(){
+  const set=adSet();
+  $("#adGrid").innerHTML = set.map(a=>
+    `<div class="ad-tile ghost"><div class="ad-thumb"><span class="ad-type">${a.type.toUpperCase()}</span><span class="ad-ph-ico">${TYPE_ICON[a.type]||"▭"}</span></div>
+     <div class="ad-tbody"><div class="ad-fname">${esc(a.file)}</div><div class="ad-fdesc">${esc(a.desc)}</div>
+       <div class="ad-meta">slot · ${esc(a.slot)} · awaiting</div></div></div>`).join("")
+     || `<div class="empty-note">No assets of this type.</div>`;
+  $("#adList").innerHTML = set.map(a=>
+    `<div class="ad-row"><span class="ad-row-ico">${TYPE_ICON[a.type]||"▭"}</span>
+     <span><b>${esc(a.file)}</b><small>${esc(a.desc)}</small></span><span class="ad-row-type">${a.type.toUpperCase()}</span></div>`).join("")
+     || `<div class="empty-note">No assets of this type.</div>`;
+  $("#adCount").textContent = `${DATA.assets.length} assets · scaffold preview`;
+  $("#adEmpty").style.display = "";
+}
+
+/* ══════════════════════════ TIMETABLE ══════════════════════════ */
+function renderTT(){
+  const tl=$("#timeline"); tl.innerHTML="";
+  const filter=Store.get("ttFilter","all");
+  let a=0,r=0,t=0;
+  DATA.timetable.forEach(([id,time,name,tracks,phase,tbd,detail])=>{
+    if(filter!=="all"&&!tracks.includes(filter)) return;
+    const removed=!!Store.get("ttRemoved."+id); removed?r++:a++; if(tbd&&!removed)t++;
+    const open=false;
+    const dots=tracks.map(tr=>`<span class="tt-dot" data-t="${tr}" title="${tr}"></span>`).join("");
+    const rows=Object.entries(detail).map(([k,v])=>`<div class="s-row"><div class="s-lbl">${esc(k)}</div><div class="s-val">${esc(v)}</div></div>`).join("");
+    const note=Store.get("ttNotes."+id,"");
+    const wrap=el("div",{className:"slot"+(removed?" removed":""),dataset:{id}});
+    wrap.innerHTML=
+      `<button class="slot-head" data-action="toggle-slot" aria-expanded="false">
+        <span class="tt-time">${esc(time)}</span>
+        <span class="tt-name">${esc(name)}${tbd?'<span class="tbd">TBD</span>':""}</span>
+        <span class="dots">${dots}</span><span class="tt-arrow">▶</span></button>
+      <div class="slot-body"><div><div class="slot-inner">${rows}
+        <textarea class="note-box" style="margin-top:10px" data-action="tt-note" data-id="${id}" placeholder="Add notes…">${esc(note)}</textarea>
+        <div class="s-btns">
+          ${removed
+            ? `<button class="s-btn rs" data-action="toggle-rm" data-id="${id}">✓ Restore</button>`
+            : `<button class="s-btn rm" data-action="toggle-rm" data-id="${id}">✕ Remove</button>`}
+        </div></div></div></div>`;
+    tl.append(wrap);
+  });
+  $("#ttA").textContent=a; $("#ttR").textContent=r; $("#ttT").textContent=t;
+}
+
+/* ══════════════════════════ SEARCH ENGINE ══════════════════════════ */
+function runSearch(q){
+  q=q.trim().toLowerCase();
+  $("#globalSearch").value===q||($("#globalSearch").value=q);
+  $("#navSearch").value===q||($("#navSearch").value=q);
+  let hits=0, mods=0;
+  $$('.section[data-module]').forEach(sec=>{
+    const items=$$('[data-search]',sec);
+    let matched=0;
+    items.forEach(it=>{
+      const hit=!q||it.dataset.search.includes(q);
+      it.classList.toggle("is-hidden", !!q && !hit);
+      it.classList.toggle("is-match", !!q && hit);
+      if(q&&hit) matched++;
+    });
+    // module-level empty note
+    let note=$(".empty-note.js-note",sec);
+    if(q&&items.length&&matched===0){
+      if(!note){ note=el("div",{className:"empty-note js-note",textContent:"No matches in this module."});
+        (sec.querySelector(".grid,.colour-row,#tovList,#cpList,#osLayers,.vend-grid")||sec).append(note); }
+      sec.style.display="";
+    } else { if(note) note.remove(); }
+    if(q){ if(matched>0){ mods++; hits+=matched; } }
+  });
+  const c=$("#searchCount");
+  if(!q){ c.textContent=""; $("#searchClear").classList.remove("show"); }
+  else { c.textContent=`${hits} result${hits===1?"":"s"} · ${mods} module${mods===1?"":"s"}`; $("#searchClear").classList.add("show"); }
+}
+
+/* ══════════════════════════ NAV + THEME + COUNTDOWN ══════════════════ */
+function showPage(name){
+  $$(".page").forEach(p=>p.classList.remove("active"));
+  $("#page-"+name).classList.add("active");
+  $$(".nav-btn").forEach(b=>b.removeAttribute("aria-current"));
+  $(`.nav-btn[data-nav="${name}"]`).setAttribute("aria-current","page");
+  Store.set("view",name);
+  window.scrollTo({top:0,behavior:"instant"});
+}
+function applyTheme(t){
+  document.documentElement.dataset.theme=t;
+  $("#themeBtn").textContent = t==="dark"?"◐":"◑";
+  Store.set("theme",t);
+}
+function countdown(){
+  const ev=new Date(2026,5,27), now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const days=Math.round((ev-today)/864e5);
+  const v=$("#dday"); if(!v) return;
+  const sub=v.parentElement.querySelector(".stat-sub");
+  if(days>0){ v.textContent=days; if(sub) sub.textContent=`Saturday June 27 · ${days} day${days===1?"":"s"} to go`; }
+  else if(days===0){ v.textContent="Today"; v.style.fontSize="1.1rem"; if(sub) sub.textContent="Event day — Saturday June 27"; }
+  else { v.textContent="—"; if(sub) sub.textContent="Saturday June 27 · concluded"; }
+}
+
+/* ══════════════════════════ EVENT DELEGATION ══════════════════════════
+   One click listener, one input listener. Every interactive control
+   declares data-action; nothing is wired inline. Adding a new button is
+   a new case here, never a new global.
+   ════════════════════════════════════════════════════════════════════ */
+document.addEventListener("click", e=>{
+  const nav=e.target.closest("[data-nav]"); if(nav){ showPage(nav.dataset.nav); return; }
+  const a=e.target.closest("[data-action]"); if(!a) return;
+  const id=a.dataset.id;
+  switch(a.dataset.action){
+    case "toggle-tov":{ const cur=!!Store.get("tovOpen."+id); Store.set("tovOpen."+id,!cur);
+      const acc=a.closest(".accordion"); acc.classList.toggle("open"); a.setAttribute("aria-expanded",String(!cur)); break; }
+    case "toggle-cp":{ const cur=!!Store.get("cpOpen."+id); Store.set("cpOpen."+id,!cur);
+      const acc=a.closest(".accordion"); acc.classList.toggle("open"); a.setAttribute("aria-expanded",String(!cur)); break; }
+    case "set-cp":{ Store.set("cp."+id, a.dataset.set); Store.set("cpOpen."+id,true); renderCP(); reindex(); toast("Checkpoint updated"); break; }
+    case "toggle-p0":{ Store.set("p0."+id, !Store.get("p0."+id)); renderP0(); reindex(); break; }
+    case "toggle-slot":{ const s=a.closest(".slot"); const o=s.classList.toggle("open"); a.setAttribute("aria-expanded",String(o)); break; }
+    case "toggle-rm":{ e.stopPropagation(); Store.set("ttRemoved."+id, !Store.get("ttRemoved."+id)); renderTT();
+      const s=$(`.slot[data-id="${id}"]`); if(s){ s.classList.add("open"); s.querySelector(".slot-head")?.setAttribute("aria-expanded","true"); } break; }
+    case "reset-state":{ e.preventDefault();
+      if(confirm("Reset all local changes (checkpoints, notes, checklist, timetable)?")){ Store.reset(); location.reload(); } break; }
+  }
+});
+document.addEventListener("input", e=>{
+  const a=e.target.closest("[data-action]");
+  if(a?.dataset.action==="cp-note"){ Store.set("cpNotes."+a.dataset.id, e.target.value); return; }
+  if(a?.dataset.action==="tt-note"){ Store.set("ttNotes."+a.dataset.id, e.target.value); return; }
+  if(e.target.id==="globalSearch"||e.target.id==="navSearch"){ runSearch(e.target.value); return; }
+  if(e.target.id==="adSearch"){ AD.q=e.target.value.toLowerCase().trim(); renderAssets(); return; }
+});
+// asset toolbar + timetable tabs (segmented controls)
+$("#adView").addEventListener("click",e=>{ const b=e.target.closest("[data-view]"); if(!b) return;
+  AD.view=b.dataset.view; $$("#adView button").forEach(x=>x.classList.toggle("active",x===b));
+  $("#adGrid").classList.toggle("hidden",AD.view!=="grid"); $("#adList").classList.toggle("active",AD.view==="list"); });
+$("#adFilters").addEventListener("click",e=>{ const c=e.target.closest(".ad-chip"); if(!c||c.classList.contains("disabled")) return;
+  AD.filter=c.dataset.type; $$("#adFilters .ad-chip").forEach(x=>x.classList.toggle("active",x===c)); renderAssets(); });
+$("#ttTabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
+  Store.set("ttFilter",t.dataset.filter); $$("#ttTabs .tab").forEach(x=>x.classList.toggle("on",x===t)); renderTT(); });
+
+$("#searchClear").addEventListener("click",()=>{ runSearch(""); $("#globalSearch").focus(); });
+$("#themeBtn").addEventListener("click",()=>applyTheme(Store.get("theme")==="dark"?"light":"dark"));
+
+// "/" focuses search from anywhere
+document.addEventListener("keydown",e=>{
+  if(e.key==="/"&&!/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)){ e.preventDefault(); $("#globalSearch").focus(); }
+  if(e.key==="Escape"&&document.activeElement.type==="search"){ runSearch(""); document.activeElement.blur(); }
+});
+
+// re-stamp search index after a re-render, then re-apply the active query
+function reindex(){ const q=$("#globalSearch").value; if(q) runSearch(q); }
+
+/* ══════════════════════════ BOOT ══════════════════════════ */
+function init(){
+  applyTheme(Store.get("theme","dark"));
+  renderStats(); renderPipelines(); renderAssets(); renderBrand(); renderColours();
+  renderMetrics(); renderP0(); renderOS(); renderVenue(); renderVendors(); renderTOV(); renderCP();
+  // restore timetable filter tab
+  const f=Store.get("ttFilter","all"); $$("#ttTabs .tab").forEach(x=>x.classList.toggle("on",x.dataset.filter===f));
+  renderTT();
+  showPage(Store.get("view","dashboard"));
+  countdown(); setInterval(countdown, 36e5); // roll the counter over hourly
+}
+init();
+</script>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sen Kluean Hub V2.0 — Wireframes & Architecture Map</title>
+<style>
+  :root{
+    --paper:#0d0f12; --panel:#14171c; --panel2:#1a1e24; --line:#2a2f37; --line2:#3a4048;
+    --ink:#e8eaf0; --mut:#9aa3af; --mut2:#6b7280; --dim:#4a515b;
+    --amber:#BA7517; --teal:#0f766e; --violet:#7c3aed; --indigo:#7d5bdb; --cyan:#06b6d4;
+    --alpine:#6f9160; --danger:#c0392b;
+    --mono:'SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+    --sans:'Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.55;padding:0 0 60px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--line);padding:30px 0 24px;margin-bottom:8px;
+    background:linear-gradient(180deg,#14171c,transparent)}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber)}
+  h1{font-size:1.7rem;font-weight:700;margin:6px 0 4px}
+  h1 small{color:var(--mut2);font-weight:400;font-size:.95rem}
+  .sub{color:var(--mut);font-size:.85rem;max-width:760px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:.7rem;color:var(--mut)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid var(--line2)}
+
+  section{margin-top:40px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:.8rem;color:var(--amber)}
+  .sec-title{font-size:1.05rem;font-weight:700}
+  .sec-note{margin-left:auto;font-size:.72rem;color:var(--mut2);font-family:var(--mono)}
+
+  svg{display:block;width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+  /* svg text helpers via classes */
+  text{font-family:var(--sans);fill:var(--ink)}
+  .t-lbl{font-family:var(--mono);font-size:11px;fill:var(--mut)}
+  .t-title{font-size:13px;font-weight:700;fill:var(--ink)}
+  .t-tiny{font-family:var(--mono);font-size:9px;fill:var(--mut2)}
+  .t-mid{font-size:11px;fill:var(--mut)}
+  .wf-box{fill:var(--panel2);stroke:var(--line2)}
+  .wf-ph{fill:none;stroke:var(--dim);stroke-dasharray:4 4}
+  .wf-btn{fill:#20252c;stroke:var(--line2);rx:5}
+  .flow{fill:var(--panel2);stroke:var(--line2);rx:8}
+
+  .note{font-size:.78rem;color:var(--mut);margin-top:10px;padding-left:14px;border-left:2px solid var(--line2)}
+  .note b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.76rem}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut2);text-transform:uppercase;letter-spacing:.06em;font-size:.62rem;font-weight:700}
+  td code{font-family:var(--mono);font-size:.72rem;color:var(--amber);background:#20252c;padding:1px 6px;border-radius:4px}
+  .pill{font-family:var(--mono);font-size:.66rem;padding:1px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--mut)}
+  footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);font-size:.72rem;color:var(--mut2);text-align:center}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="kick">เส้นเคลื่น Market · Production Hub V2.0</div>
+  <h1>Wireframes &amp; Architecture Map <small>— interactive button system</small></h1>
+  <p class="sub">Low-fidelity wireframes of both views plus the data-flow map behind every interactive control. Boxes are layout regions; dashed blocks are dynamic mount points rendered from <code style="font-family:var(--mono);color:var(--amber)">DATA</code>; pills are interactive controls wired through one delegated listener.</p>
+  <div class="legend">
+    <span><i class="sw" style="background:#1a1e24"></i>Static region</span>
+    <span><i class="sw" style="background:none;border-style:dashed;border-color:#4a515b"></i>Dynamic mount (rendered from DATA)</span>
+    <span><i class="sw" style="background:#20252c"></i>Interactive control (data-action)</span>
+    <span><i class="sw" style="background:#BA7517"></i>Persisted to localStorage</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<!-- ══════════ 1. DASHBOARD WIREFRAME ══════════ -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><span class="sec-title">Dashboard — page wireframe</span>
+    <span class="sec-note">#page-dashboard · 11 modules</span></div>
+  <svg viewBox="0 0 1140 1180" role="img" aria-label="Dashboard wireframe">
+    <!-- NAV -->
+    <rect class="wf-box" x="16" y="16" width="1108" height="48" rx="8"/>
+    <text class="t-title" x="32" y="46">เส้นเคลื่น Market</text>
+    <text class="t-tiny" x="32" y="58">nav · brand</text>
+    <rect class="wf-btn" x="470" y="28" width="86" height="24" rx="5"/><text class="t-lbl" x="483" y="44">Dashboard</text>
+    <rect class="wf-btn" x="562" y="28" width="80" height="24" rx="5"/><text class="t-lbl" x="575" y="44">Timetable</text>
+    <rect class="wf-ph" x="760" y="28" width="180" height="24" rx="12"/><text class="t-tiny" x="775" y="44">⌕ nav search (synced)</text>
+    <rect class="wf-btn" x="948" y="28" width="30" height="24" rx="5"/><text class="t-lbl" x="957" y="44">◐</text>
+    <text class="t-tiny" x="988" y="44">27 Jun · CNX</text>
+
+    <!-- HERO -->
+    <rect class="wf-box" x="16" y="76" width="1108" height="130" rx="8"/>
+    <text class="t-title" x="34" y="108">Production Overview</text>
+    <text class="t-mid" x="34" y="126">Thinking beyond the grid — every wave has a story</text>
+    <rect class="wf-btn" x="940" y="92" width="168" height="24" rx="12"/><text class="t-lbl" x="956" y="108">● Edition 2.0 — Prototype</text>
+    <!-- stat cards (dynamic) -->
+    <g>
+      <rect class="wf-ph" x="34" y="142" width="168" height="50" rx="6"/><text class="t-tiny" x="44" y="162">Days to event ●live</text><text class="t-title" x="44" y="182">— </text>
+      <rect class="wf-ph" x="214" y="142" width="168" height="50" rx="6"/><text class="t-tiny" x="224" y="162">Vendor zones</text>
+      <rect class="wf-ph" x="394" y="142" width="168" height="50" rx="6"/><text class="t-tiny" x="404" y="162">Entry — free</text>
+      <rect class="wf-ph" x="574" y="142" width="168" height="50" rx="6"/><text class="t-tiny" x="584" y="162">Pipelines 5+1</text>
+      <rect class="wf-ph" x="754" y="142" width="168" height="50" rx="6"/><text class="t-tiny" x="764" y="162">Event duration</text>
+      <rect class="wf-ph" x="934" y="142" width="174" height="50" rx="6"/><text class="t-tiny" x="944" y="162">Social assets</text>
+    </g>
+    <text class="t-tiny" x="34" y="204" fill="#BA7517">renderStats() ← DATA.stats · #dday driven by countdown()</text>
+
+    <!-- GLOBAL SEARCH -->
+    <rect x="16" y="222" width="1108" height="40" rx="8" fill="#181c22" stroke="#3a4048"/>
+    <text class="t-lbl" x="34" y="247">⌕  Search the whole dashboard — pipelines, copy, colours, metrics, checkpoints…</text>
+    <rect class="wf-btn" x="1000" y="230" width="24" height="24" rx="5"/><text class="t-lbl" x="1008" y="246">/</text>
+    <text class="t-tiny" x="1034" y="247">count · ×</text>
+
+    <!-- PIPELINE STATUS -->
+    <text class="t-lbl" x="16" y="292">PIPELINE STATUS · 5 pipelines</text>
+    <g>
+      <rect class="wf-ph" x="16" y="300" width="356" height="118" rx="8"/>
+      <rect class="wf-ph" x="392" y="300" width="356" height="118" rx="8"/>
+      <rect class="wf-ph" x="768" y="300" width="356" height="118" rx="8"/>
+      <text class="t-mid" x="34" y="324">Branding &amp; identity  ● active 80%</text>
+      <text class="t-mid" x="410" y="324">Core identity  ● complete 100%</text>
+      <text class="t-mid" x="786" y="324">Event production  ● active 50%</text>
+      <rect x="34" y="334" width="320" height="5" rx="3" fill="#7c3aed"/>
+      <rect x="410" y="334" width="320" height="5" rx="3" fill="#0f766e"/>
+      <rect x="786" y="160" width="0" height="0"/><rect x="786" y="334" width="160" height="5" rx="3" fill="#BA7517"/><rect x="946" y="334" width="160" height="5" rx="3" fill="#20252c"/>
+      <text class="t-tiny" x="34" y="360">✓ done ·  → active ·  ○ todo  (phase-steps)</text>
+      <text class="t-tiny" x="410" y="360">7/7 steps done</text>
+      <text class="t-tiny" x="786" y="360">5 done · 1 active · 4 todo</text>
+      <rect class="wf-ph" x="16" y="426" width="540" height="72" rx="8"/>
+      <text class="t-mid" x="34" y="450">Internal OS / app  ● active 15%</text>
+      <text class="t-tiny" x="34" y="468">5-layer build · L2 CRM done</text>
+      <rect class="wf-ph" x="576" y="426" width="548" height="72" rx="8"/>
+      <text class="t-mid" x="594" y="450">Copywriting  ⌐sub  ● 40%</text>
+      <text class="t-tiny" x="594" y="468">Stage 2 of 5 drafted · in review</text>
+    </g>
+    <text class="t-tiny" x="16" y="516" fill="#BA7517">renderPipelines() ← DATA.pipelines[] → .pipe cards (progress bar + step list)</text>
+
+    <!-- ASSET LIBRARY -->
+    <text class="t-lbl" x="16" y="548">ART &amp; DESIGN · ASSET LIBRARY</text>
+    <rect class="wf-box" x="16" y="556" width="1108" height="150" rx="8"/>
+    <rect class="wf-btn" x="34" y="572" width="120" height="24" rx="5"/><text class="t-lbl" x="46" y="588">▦ Grid  ☰ List</text>
+    <rect class="wf-btn" x="166" y="572" width="200" height="24" rx="5"/><text class="t-lbl" x="178" y="588">All · JPG · PNG · PSD(soon)</text>
+    <rect class="wf-ph" x="920" y="572" width="130" height="24" rx="5"/><text class="t-tiny" x="932" y="588">⌕ asset search</text>
+    <text class="t-tiny" x="1064" y="588">count</text>
+    <g>
+      <rect class="wf-ph" x="34" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="44" y="630">logo_master.png</text>
+      <rect class="wf-ph" x="166" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="176" y="630">wordmark.png</text>
+      <rect class="wf-ph" x="298" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="308" y="630">poster.jpg</text>
+      <rect class="wf-ph" x="430" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="440" y="630">specimen.png</text>
+      <rect class="wf-ph" x="562" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="572" y="630">motif.png</text>
+      <rect class="wf-ph" x="694" y="610" width="120" height="82" rx="6"/><text class="t-tiny" x="704" y="630">keyart.jpg</text>
+    </g>
+    <text class="t-tiny" x="34" y="704" fill="#BA7517">renderAssets() ← DATA.assets · view toggle · type filter · search (scaffold preview)</text>
+
+    <!-- BRAND + COLOURS + METRICS row -->
+    <text class="t-lbl" x="16" y="736">BRAND &amp; IDENTITY  ·  COLOUR PALETTE  ·  PROTOTYPE METRICS</text>
+    <rect class="wf-ph" x="16" y="746" width="356" height="96" rx="8"/><text class="t-tiny" x="30" y="768">brand cards ×10</text><text class="t-tiny" x="30" y="784" fill="#BA7517">renderBrand()</text>
+    <rect class="wf-ph" x="392" y="746" width="356" height="96" rx="8"/><text class="t-tiny" x="406" y="768">7 colour chips (2 NEW)</text><text class="t-tiny" x="406" y="784" fill="#BA7517">renderColours()</text>
+    <g><rect x="406" y="796" width="20" height="20" rx="4" fill="#003153"/><rect x="432" y="796" width="20" height="20" rx="4" fill="#1B4332"/><rect x="458" y="796" width="20" height="20" rx="4" fill="#4A5568"/><rect x="484" y="796" width="20" height="20" rx="4" fill="#4B0082"/><rect x="510" y="796" width="20" height="20" rx="4" fill="#6f9160"/><rect x="536" y="796" width="20" height="20" rx="4" fill="#1C1C1C" stroke="#3a4048"/></g>
+    <rect class="wf-ph" x="768" y="746" width="356" height="96" rx="8"/><text class="t-tiny" x="782" y="768">metric cards ×6</text><text class="t-tiny" x="782" y="784" fill="#BA7517">renderMetrics()</text>
+
+    <!-- P0 CHECKLIST -->
+    <text class="t-lbl" x="16" y="874">P0 PRE-EVENT ACTIONS · 15 items · click to toggle done</text>
+    <g>
+      <rect class="wf-ph" x="16" y="884" width="356" height="34" rx="6"/><circle cx="34" cy="901" r="8" fill="none" stroke="#BA7517"/><text class="t-tiny" x="52" y="905">1. Confirm venue &amp; permit</text>
+      <rect class="wf-ph" x="392" y="884" width="356" height="34" rx="6"/><circle cx="410" cy="901" r="8" fill="#0f766e"/><text class="t-tiny" x="428" y="905">4. Launch workshop reg ✓</text>
+      <rect class="wf-ph" x="768" y="884" width="356" height="34" rx="6"/><circle cx="786" cy="901" r="8" fill="none" stroke="#7c3aed"/><text class="t-tiny" x="804" y="905">11. Lock vendor roster</text>
+    </g>
+    <text class="t-tiny" x="16" y="940" fill="#BA7517">renderP0() ← DATA.p0 · data-action="toggle-p0" · state → Store.p0 (localStorage)</text>
+
+    <!-- OS + VENUE -->
+    <text class="t-lbl" x="16" y="972">INTERNAL OS — ARCHITECTURE (5 layers)   ·   VENUE BLUEPRINT (SVG)</text>
+    <rect class="wf-ph" x="16" y="982" width="540" height="120" rx="8"/>
+    <text class="t-tiny" x="30" y="1004">L1 Production clarity</text><text class="t-tiny" x="30" y="1022">L2 Relationship CRM</text>
+    <text class="t-tiny" x="30" y="1040">L3 Revenue &amp; conversion</text><text class="t-tiny" x="30" y="1058">L4 On-site capture</text>
+    <text class="t-tiny" x="30" y="1076">L5 Post-event analytics</text><text class="t-tiny" x="30" y="1096" fill="#BA7517">renderOS()</text>
+    <rect class="wf-ph" x="576" y="982" width="548" height="120" rx="8"/>
+    <rect x="700" y="998" width="180" height="88" fill="none" stroke="#4a515b"/><rect x="720" y="1018" width="60" height="48" fill="#20252c" stroke="#4a515b"/><text class="t-tiny" x="726" y="1046">Pool</text>
+    <rect x="810" y="1012" width="50" height="60" fill="#1a1e24" stroke="#4a515b"/><text class="t-tiny" x="815" y="1046">Main</text>
+    <text class="t-tiny" x="590" y="1096" fill="#BA7517">renderVenue() ← inline SVG site plan</text>
+
+    <!-- VENDORS + TOV -->
+    <text class="t-lbl" x="16" y="1132">VENDOR CATEGORIES (6, expandable)  ·  TONE OF VOICE (4 dims)  ·  CHECKPOINTS ↓</text>
+    <rect class="wf-ph" x="16" y="1142" width="540" height="28" rx="6"/><text class="t-tiny" x="30" y="1160">Market · Barter · Coffee · Sound · Workshop · Art&amp;Craft  &lt;details&gt;</text>
+    <rect class="wf-ph" x="576" y="1142" width="548" height="28" rx="6"/><text class="t-tiny" x="590" y="1160">Dim 01–04 accordions → renderTOV() · Store.tovOpen</text>
+  </svg>
+  <p class="note"><b>Read order:</b> nav → hero (stats + live countdown) → global search → pipelines → asset library → brand/colours/metrics → P0 checklist → OS + venue → vendors → tone of voice → checkpoints → footer (reset). Every dashed block is populated by a <code style="font-family:var(--mono);color:var(--amber)">render*()</code> function reading from <code style="font-family:var(--mono);color:var(--amber)">DATA</code>.</p>
+</section>
+
+<!-- ══════════ 2. TIMETABLE WIREFRAME ══════════ -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><span class="sec-title">Timetable — page wireframe</span>
+    <span class="sec-note">#page-timetable · 15 slots</span></div>
+  <div class="grid2">
+    <svg viewBox="0 0 560 620" role="img" aria-label="Timetable wireframe">
+      <text class="t-title" x="280" y="40" text-anchor="middle">Saturday, June 27 2026 — 9am–8pm + Afterparty</text>
+      <text class="t-mid" x="280" y="60" text-anchor="middle">เส้นเคลื่น Market · Chiang Mai</text>
+      <!-- filter tabs -->
+      <rect class="wf-btn" x="120" y="80" width="60" height="26" rx="13" fill="#20252c" stroke="#4a515b"/><text class="t-lbl" x="140" y="97">All</text>
+      <rect class="wf-btn" x="188" y="80" width="80" height="26" rx="13"/><text class="t-lbl" x="200" y="97">♫ Stage</text>
+      <rect class="wf-btn" x="276" y="80" width="90" height="26" rx="13"/><text class="t-lbl" x="288" y="97">▤ Market</text>
+      <rect class="wf-btn" x="374" y="80" width="100" height="26" rx="13"/><text class="t-lbl" x="386" y="97">🔧 Workshop</text>
+      <text class="t-tiny" x="280" y="128" text-anchor="middle">Active 13 · Removed 0 · TBD 8</text>
+      <!-- slots -->
+      <g>
+        <rect class="wf-box" x="40" y="146" width="480" height="40" rx="8"/>
+        <text class="t-lbl" x="56" y="171">9:00</text><text class="t-mid" x="150" y="171">Doors Open — Market Opens</text>
+        <circle cx="440" cy="166" r="5" fill="#6f9160"/><text class="t-tiny" x="486" y="171">▶</text>
+      </g>
+      <g>
+        <rect class="wf-box" x="40" y="194" width="480" height="86" rx="8"/>
+        <text class="t-lbl" x="56" y="219">1:00–3:00</text><text class="t-mid" x="150" y="219">DIY Amplifier Workshop</text>
+        <rect x="300" y="209" width="34" height="14" rx="3" fill="none" stroke="#BA7517"/><text class="t-tiny" x="306" y="220" fill="#BA7517">TBD</text>
+        <circle cx="440" cy="214" r="5" fill="#BA7517"/><text class="t-tiny" x="486" y="219" fill="#BA7517">▼ open</text>
+        <!-- expanded body -->
+        <text class="t-tiny" x="60" y="242">Cap · 5 · Price 1,500 THB · Instructor TBD …</text>
+        <rect class="wf-ph" x="60" y="248" width="440" height="14" rx="4"/><text class="t-tiny" x="66" y="259">▭ notes textarea → Store.ttNotes</text>
+        <rect class="wf-btn" x="60" y="266" width="90" height="0" rx="4"/>
+        <rect x="60" y="266" width="88" height="0"/>
+      </g>
+      <rect x="60" y="264" width="88" height="0"/>
+      <g><rect class="wf-btn" x="60" y="270" width="0" height="0"/></g>
+      <g>
+        <rect class="wf-box" x="40" y="290" width="480" height="40" rx="8"/>
+        <text class="t-lbl" x="56" y="315">6:00–8:00</text><text class="t-mid" x="150" y="315">Special Show</text>
+        <rect x="252" y="305" width="34" height="14" rx="3" fill="none" stroke="#BA7517"/><text class="t-tiny" x="258" y="316" fill="#BA7517">TBD</text>
+        <circle cx="440" cy="310" r="5" fill="#003153" stroke="#4a515b"/>
+      </g>
+      <g>
+        <rect class="wf-box" x="40" y="338" width="480" height="40" rx="8" opacity="0.45"/>
+        <text class="t-lbl" x="56" y="363" opacity="0.6">8:30–late</text><text class="t-mid" x="150" y="363" text-decoration="line-through" opacity="0.6">Afterparty (removed)</text>
+        <text class="t-tiny" x="470" y="363" fill="#0f766e">✓ restore</text>
+      </g>
+      <text class="t-tiny" x="40" y="404" fill="#BA7517">renderTT() ← DATA.timetable · setFilter · toggle-slot · toggle-rm · tt-note</text>
+      <!-- track legend -->
+      <text class="t-lbl" x="40" y="440">TRACK DOTS</text>
+      <circle cx="52" cy="458" r="5" fill="#003153" stroke="#4a515b"/><text class="t-tiny" x="66" y="462">stage</text>
+      <circle cx="140" cy="458" r="5" fill="#6f9160"/><text class="t-tiny" x="154" y="462">market</text>
+      <circle cx="230" cy="458" r="5" fill="#BA7517"/><text class="t-tiny" x="244" y="462">workshop</text>
+      <text class="t-mid" x="40" y="496">Filter re-renders the list; removed + notes + filter</text>
+      <text class="t-mid" x="40" y="514">all persist to localStorage and survive reload.</text>
+    </svg>
+
+    <div>
+      <h3 style="font-size:.95rem;margin-bottom:6px">Slot interaction states</h3>
+      <table>
+        <tr><th>Control</th><th>data-action</th><th>Effect</th><th>Persist</th></tr>
+        <tr><td>Track tab</td><td><code>—</code> (#ttTabs)</td><td>filter slots by track</td><td><span class="pill" style="color:#BA7517;border-color:#BA7517">yes</span></td></tr>
+        <tr><td>Slot header</td><td><code>toggle-slot</code></td><td>expand / collapse detail</td><td>no</td></tr>
+        <tr><td>Remove / Restore</td><td><code>toggle-rm</code></td><td>strike-through + dim</td><td><span class="pill" style="color:#BA7517;border-color:#BA7517">yes</span></td></tr>
+        <tr><td>Notes field</td><td><code>tt-note</code></td><td>free-text per slot</td><td><span class="pill" style="color:#BA7517;border-color:#BA7517">yes</span></td></tr>
+      </table>
+      <p class="note" style="margin-top:16px"><b>Live stats</b> (Active / Removed / TBD) recompute on every <code style="font-family:var(--mono);color:var(--amber)">renderTT()</code> from the current filter + removed set — no separate counters to drift out of sync.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 3. ARCHITECTURE FLOW ══════════ -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><span class="sec-title">Interactive architecture — data flow map</span>
+    <span class="sec-note">DATA → render → DOM → delegate → Store → localStorage</span></div>
+  <svg viewBox="0 0 1140 470" role="img" aria-label="Architecture data flow">
+    <!-- DATA -->
+    <rect class="flow" x="20" y="40" width="200" height="150"/>
+    <text class="t-title" x="120" y="66" text-anchor="middle">DATA</text>
+    <text class="t-tiny" x="36" y="90">stats · pipelines</text>
+    <text class="t-tiny" x="36" y="106">assets · brand · colours</text>
+    <text class="t-tiny" x="36" y="122">metrics · p0 · os</text>
+    <text class="t-tiny" x="36" y="138">vendors · tov</text>
+    <text class="t-tiny" x="36" y="154">checkpoints · timetable</text>
+    <text class="t-tiny" x="36" y="174" fill="#0f766e">single source of content</text>
+
+    <!-- RENDER -->
+    <rect class="flow" x="300" y="40" width="220" height="150"/>
+    <text class="t-title" x="410" y="66" text-anchor="middle">render*()</text>
+    <text class="t-tiny" x="316" y="90">renderStats / Pipelines /</text>
+    <text class="t-tiny" x="316" y="106">Assets / Brand / Colours /</text>
+    <text class="t-tiny" x="316" y="122">Metrics / P0 / OS / Vendors /</text>
+    <text class="t-tiny" x="316" y="138">TOV / CP / TT</text>
+    <text class="t-tiny" x="316" y="160" fill="#7c3aed">stampSearch() indexes each</text>
+    <text class="t-tiny" x="316" y="176" fill="#7c3aed">node → data-search</text>
+
+    <!-- DOM -->
+    <rect class="flow" x="600" y="40" width="200" height="150"/>
+    <text class="t-title" x="700" y="66" text-anchor="middle">DOM</text>
+    <text class="t-tiny" x="616" y="90">.pipe · .card · .accordion</text>
+    <text class="t-tiny" x="616" y="106">.slot · .ad-tile · .col-chip</text>
+    <text class="t-tiny" x="616" y="126">each control carries</text>
+    <text class="t-tiny" x="616" y="142" fill="#BA7517">data-action + data-id</text>
+    <text class="t-tiny" x="616" y="166">aria-expanded on toggles</text>
+
+    <!-- DELEGATE -->
+    <rect class="flow" x="880" y="40" width="240" height="150"/>
+    <text class="t-title" x="1000" y="66" text-anchor="middle">delegated listeners</text>
+    <text class="t-tiny" x="896" y="90">1 click + 1 input handler</text>
+    <text class="t-tiny" x="896" y="110">switch(data-action){…}</text>
+    <text class="t-tiny" x="896" y="130" fill="#0f766e">no inline onclick</text>
+    <text class="t-tiny" x="896" y="146" fill="#0f766e">no global functions</text>
+    <text class="t-tiny" x="896" y="170">keydown "/" focuses search</text>
+
+    <!-- STORE -->
+    <rect class="flow" x="440" y="290" width="260" height="130" style="stroke:#BA7517"/>
+    <text class="t-title" x="570" y="316" text-anchor="middle" fill="#BA7517">Store</text>
+    <text class="t-tiny" x="456" y="340">get(path,fb) · set(path,val)</text>
+    <text class="t-tiny" x="456" y="358">save() → JSON.stringify</text>
+    <text class="t-tiny" x="456" y="378">cp · cpNotes · p0 · ttRemoved</text>
+    <text class="t-tiny" x="456" y="396">ttNotes · tovOpen · theme · view</text>
+
+    <!-- LOCALSTORAGE -->
+    <rect class="flow" x="760" y="300" width="200" height="110"/>
+    <text class="t-title" x="860" y="326" text-anchor="middle">localStorage</text>
+    <text class="t-tiny" x="776" y="350">key: senkluean.hub.v2</text>
+    <text class="t-tiny" x="776" y="372" fill="#0f766e">survives reload</text>
+    <text class="t-tiny" x="776" y="390">reset() clears + reloads</text>
+
+    <!-- SEARCH -->
+    <rect class="flow" x="180" y="300" width="220" height="110" style="stroke:#7c3aed"/>
+    <text class="t-title" x="290" y="326" text-anchor="middle" fill="#7c3aed">runSearch(q)</text>
+    <text class="t-tiny" x="196" y="350">scans [data-search] per module</text>
+    <text class="t-tiny" x="196" y="370">is-hidden / is-match / empty-note</text>
+    <text class="t-tiny" x="196" y="390">nav + hero inputs stay synced</text>
+
+    <!-- arrows -->
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker></defs>
+    <line x1="220" y1="115" x2="298" y2="115" stroke="#6b7280" stroke-width="1.6" marker-end="url(#ah)"/>
+    <line x1="520" y1="115" x2="598" y2="115" stroke="#6b7280" stroke-width="1.6" marker-end="url(#ah)"/>
+    <line x1="800" y1="115" x2="878" y2="115" stroke="#6b7280" stroke-width="1.6" marker-end="url(#ah)"/>
+    <!-- delegate → store -->
+    <path d="M1000,190 L1000,250 L620,250 L600,288" stroke="#6b7280" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+    <text class="t-tiny" x="640" y="244" fill="#9aa3af">write on interaction</text>
+    <!-- store → localstorage -->
+    <line x1="700" y1="355" x2="758" y2="355" stroke="#BA7517" stroke-width="1.6" marker-end="url(#ah)"/>
+    <!-- store → render (re-render loop) -->
+    <path d="M470,300 L410,300 L410,196" stroke="#6b7280" stroke-width="1.6" fill="none" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+    <text class="t-tiny" x="330" y="250" fill="#9aa3af">re-render on change</text>
+    <!-- render → search -->
+    <path d="M360,190 L320,230 L300,298" stroke="#7c3aed" stroke-width="1.4" fill="none" stroke-dasharray="4 4" marker-end="url(#ah)"/>
+    <!-- boot on load -->
+    <path d="M120,190 L120,355 L178,355" stroke="#6b7280" stroke-width="1.4" fill="none" stroke-dasharray="4 4"/>
+    <text class="t-tiny" x="40" y="240" fill="#9aa3af">init() boots all renderers,</text>
+    <text class="t-tiny" x="40" y="256" fill="#9aa3af">restores theme + view + filter</text>
+  </svg>
+  <p class="note"><b>The loop:</b> a control's <code style="font-family:var(--mono);color:var(--amber)">data-action</code> is caught by the single delegated listener → it writes to <code style="font-family:var(--mono);color:var(--amber)">Store</code> (which persists to localStorage) → the relevant <code style="font-family:var(--mono);color:var(--amber)">render*()</code> re-runs → the search index is rebuilt via <code style="font-family:var(--mono);color:var(--amber)">stampSearch()</code>. On next visit, <code style="font-family:var(--mono);color:var(--amber)">init()</code> replays saved state so the hub reopens exactly where it was left.</p>
+</section>
+
+<!-- ══════════ 4. CONTROL INVENTORY ══════════ -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><span class="sec-title">Interactive control inventory</span>
+    <span class="sec-note">every button → its handler</span></div>
+  <table>
+    <tr><th>Control</th><th>Where</th><th>data-action</th><th>State key</th><th>Persist</th></tr>
+    <tr><td>View tabs</td><td>nav</td><td><code>data-nav</code></td><td><code>view</code></td><td>✓</td></tr>
+    <tr><td>Theme toggle</td><td>nav ◐</td><td><code>#themeBtn</code></td><td><code>theme</code></td><td>✓</td></tr>
+    <tr><td>Global / nav search</td><td>hero + nav</td><td><code>runSearch</code></td><td>—</td><td>—</td></tr>
+    <tr><td>Asset view / filter / search</td><td>library</td><td>segmented + chips</td><td><code>AD.*</code></td><td>—</td></tr>
+    <tr><td>P0 item</td><td>checklist</td><td><code>toggle-p0</code></td><td><code>p0.{n}</code></td><td>✓</td></tr>
+    <tr><td>Vendor category</td><td>vendors</td><td><code>&lt;details&gt;</code></td><td>—</td><td>—</td></tr>
+    <tr><td>TOV dimension</td><td>tone of voice</td><td><code>toggle-tov</code></td><td><code>tovOpen.{i}</code></td><td>✓</td></tr>
+    <tr><td>Checkpoint expand</td><td>roadmap</td><td><code>toggle-cp</code></td><td><code>cpOpen.{id}</code></td><td>✓</td></tr>
+    <tr><td>Checkpoint status</td><td>roadmap</td><td><code>set-cp</code></td><td><code>cp.{id}</code></td><td>✓</td></tr>
+    <tr><td>Checkpoint note</td><td>roadmap</td><td><code>cp-note</code></td><td><code>cpNotes.{id}</code></td><td>✓</td></tr>
+    <tr><td>Timetable filter</td><td>timetable</td><td>tab</td><td><code>ttFilter</code></td><td>✓</td></tr>
+    <tr><td>Slot expand</td><td>timetable</td><td><code>toggle-slot</code></td><td>—</td><td>—</td></tr>
+    <tr><td>Slot remove/restore</td><td>timetable</td><td><code>toggle-rm</code></td><td><code>ttRemoved.{id}</code></td><td>✓</td></tr>
+    <tr><td>Slot note</td><td>timetable</td><td><code>tt-note</code></td><td><code>ttNotes.{id}</code></td><td>✓</td></tr>
+    <tr><td>Reset</td><td>footer</td><td><code>reset-state</code></td><td>clears all</td><td>✓</td></tr>
+  </table>
+</section>
+
+<footer>เส้นเคลื่น Market · Sen Kluean · Production Hub V2.0 — wireframe &amp; architecture map · self-contained, no dependencies</footer>
+</div>
+</body>
+</html>
