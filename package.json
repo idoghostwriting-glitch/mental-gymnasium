@@ -1,0 +1,15 @@
+{
+  "name": "mental-gymnasium",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Landing page for Mental Gymnasium — a fictocriticism zine by Neo_SC.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.8"
+  }
+}
