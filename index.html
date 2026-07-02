@@ -269,16 +269,6 @@
   </div>
 </footer>
 
-<script>
-  function mgJoin(e){
-    e.preventDefault();
-    var f=e.target;
-    var subject=encodeURIComponent('Mental Gymnasium — count me in');
-    var body=encodeURIComponent('Email: '+f.email.value+'\nInvolvement: '+f.note.value+'\n\n(sent from the landing page)');
-    window.location.href='mailto:idoghostwriting@gmail.com?subject='+subject+'&body='+body;
-    document.getElementById('mgmsg').textContent='Thanks — opening your email app so you can hit send.';
-    return false;
-  }
-</script>
+<script src="assets/join.js"></script>
 </body>
 </html>
